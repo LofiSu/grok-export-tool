@@ -32,7 +32,7 @@ python3 ../../grok-bot-export.py --mode chat
 
 Output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/`.
 
-Requirements: macOS + Google Chrome logged into grok.com, `pip install -r requirements.txt`.
+Requirements: Google Chrome logged into grok.com (macOS / Windows / Linux — see README for auth), `pip install -r requirements.txt`.
 
 ### 2. Query the exported data
 
