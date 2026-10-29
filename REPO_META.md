@@ -4,7 +4,7 @@ Suggestions for the GitHub About box when this repository is made public. Nothin
 
 ## Description
 
-Use this text (178 characters; GitHub allows 350):
+Use this text (170 characters; GitHub allows 350):
 
 > Export your own Grok Bot conversations and attachments from grok.com into a local, agent-friendly archive, and query that archive with a zero-dependency stdio MCP server.
 
