@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guide — grok-export-tool</title>
+  <meta name="description" content="Step-by-step backup of your own grok.com Grok Bots and regular chats on a Mac, then query the Bot archive with MCP.">
+  <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/guide.html">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <div class="frame">
+    <header class="site-header">
+      <a class="wordmark" href="index.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="guide.zh-CN.html" lang="zh-Hans">中文</a>
+        <a href="https://github.com/LofiSu/grok-export-tool">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="content">
+      <header class="hero">
+        <p class="kicker">Usage guide</p>
+        <h1>Back up your own account</h1>
+        <p class="deck">Grok Bots, with attachments, and regular Grok chats. One command, two directories, on the Mac where Chrome is already logged in.</p>
+        <p class="scope">Unofficial local backup. Progress lines from the exporter are in Chinese. Markdown source: <a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.md">docs/guide.md</a>.</p>
+      </header>
+
+      <section>
+        <h2>Contents</h2>
+        <ol class="toc measure">
+          <li><a href="#before">Before you start <span>01</span></a></li>
+          <li><a href="#install">Install <span>02</span></a></li>
+          <li><a href="#export">Export <span>03</span></a></li>
+          <li><a href="#where">Where the files go <span>04</span></a></li>
+          <li><a href="#reading">Reading the archive <span>05</span></a></li>
+          <li><a href="#mcp">MCP server <span>06</span></a></li>
+          <li><a href="#troubleshooting">Troubleshooting <span>07</span></a></li>
+          <li><a href="#safety">Safety <span>08</span></a></li>
+        </ol>
+      </section>
+
+      <section id="before">
+        <h2>1. Before you start</h2>
+        <div class="measure">
+          <ol>
+            <li>macOS, Windows, or Linux. macOS uses the Keychain. Windows can use DPAPI. Linux is best-effort. Any platform can pass <code>--cookie</code>.</li>
+            <li>Google Chrome, logged in at <a href="https://grok.com">grok.com</a> as the account you want to back up. Safari, Firefox, Arc, and Chromium are not read.</li>
+            <li>That login lives in the Chrome profile Default, Profile 1, or Profile 2. Other profiles are ignored.</li>
+            <li>Python 3.9 or newer (<code>python3 --version</code>).</li>
+            <li>The account is yours.</li>
+          </ol>
+          <p><code>--mode bot</code> (the default) exports Grok Bots: an agent with an id, a roster entry, and a transcript. <code>--mode chat</code> exports regular grok.com conversations. <code>--mode all</code> exports both, into two directories.</p>
+          <p>Sign in before you run anything. The tool reuses that session. It does not open a login window. macOS will ask once for Keychain access; that step is under <a href="#troubleshooting">Troubleshooting</a>.</p>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>2. Install</h2>
+        <div class="measure">
+          <pre><code>git clone https://github.com/LofiSu/grok-export-tool.git
+cd grok-export-tool
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt</code></pre>
+          <p><code>requirements.txt</code> installs <code>websocket-client</code> and <code>cryptography</code>. Both modes decrypt Chrome’s cookie database first, so both need them. Chat requests themselves use the Python standard library.</p>
+          <p>Keep the virtualenv active in the terminal where you run the exporter. The MCP server has no third-party imports, so its command can be system <code>python3</code>.</p>
+          <pre><code>python3 grok-bot-export.py --help</code></pre>
+          <p>You should see <code>--mode {bot,chat,all}</code>, <code>--skip-attachments</code> / <code>--messages-only</code>, and <code>--workers</code>.</p>
+        </div>
+      </section>
+
+      <section id="export">
+        <h2>3. Export</h2>
+        <div class="measure">
+          <p>Run these from the repository root, with the virtualenv active. The first successful cookie read triggers a macOS dialog for the Keychain item <strong>Chrome Safe Storage</strong>. Choose Allow.</p>
+
+          <h3>Grok Bots, full archive</h3>
+          <p>Messages, events, voice-call records, and attachment files.</p>
+          <pre><code>python3 grok-bot-export.py
+# or
+./export.sh</code></pre>
+          <p>Default directory: <code>~/Downloads/grok-bot-export-YYYYMMDD/</code>.</p>
+
+          <h3>Grok Bots, messages only</h3>
+          <p>The transcript is still complete. Attachment bytes are not downloaded. <code>messages.jsonl</code> still records <code>localFile</code> when the transcript names a file, so a later full run knows where to put it.</p>
+          <pre><code>python3 grok-bot-export.py --messages-only
+# --skip-attachments is the same flag
+# ./export-messages.sh wraps it</code></pre>
+
+          <h3>Regular Grok chats</h3>
+          <pre><code>python3 grok-bot-export.py --mode chat
+# or
+./export-chat.sh</code></pre>
+          <p>Default directory: <code>~/Downloads/grok-chat-export-YYYYMMDD/</code>. This writes conversation text and raw response JSON. It does not download attachment files. <code>--messages-only</code> has no effect here.</p>
+
+          <h3>Both</h3>
+          <pre><code>python3 grok-bot-export.py --mode all</code></pre>
+          <p>With no directory argument, Bots go to <code>~/Downloads/grok-bot-export-YYYYMMDD/</code> and chats go to <code>~/Downloads/grok-chat-export-YYYYMMDD/</code>. There is no <code>export-all.sh</code>. <code>--messages-only</code> together with <code>--mode all</code> skips Bot attachments and still writes chats.</p>
+
+          <h3>Choose a directory</h3>
+          <pre><code>python3 grok-bot-export.py ~/Backups/grok-bots
+python3 grok-bot-export.py --messages-only ~/Backups/grok-bots
+python3 grok-bot-export.py --mode chat ~/Backups/grok-chats
+python3 grok-bot-export.py --mode all ~/Backups/grok-bots</code></pre>
+          <p>The last command writes Bots to <code>~/Backups/grok-bots</code> and chats to <code>~/Backups/grok-bots-chat</code>. The <code>-chat</code> suffix is added only when <code>--mode all</code> and a directory are both set. A chat-only run uses the directory you passed, with no suffix.</p>
+
+          <h3>Attachment workers</h3>
+          <p>Bot downloads use 6 threads unless you change it. <code>--workers</code> must be from 1 to 32. Each chunk is 4&nbsp;MB, which is the request size the exporter sends.</p>
+          <pre><code>python3 grok-bot-export.py --workers 4</code></pre>
+          <p>A file that already exists and is non-empty is left in place. An empty file is downloaded again. Re-running a full Bot export retries failures.</p>
+          <p>Each mode walks the whole list the session returns. There is no flag for a single Bot or a single chat. Afterward, open one folder, or ask the MCP server for one Bot by name.</p>
+        </div>
+      </section>
+
+      <section id="where">
+        <h2>4. Where the files go</h2>
+        <div class="measure">
+          <p>Defaults sit under <code>~/Downloads/</code>, outside the git repository. An export can contain full transcripts and files, and it should not be committed.</p>
+          <p>A cookie failure exits before any directory is created. If the Bot WebSocket fails after cookies succeed, the Bot export may already have created an empty output directory.</p>
+        </div>
+      </section>
+
+      <section id="reading">
+        <h2>5. Reading the archive</h2>
+        <div class="measure">
+          <h3>Grok Bots</h3>
+          <pre><code>grok-bot-export-YYYYMMDD/
+  AGENTS.md            short map for an agent
+  _index.md            one link per Bot
+  roster.json          the roster, under "agents"
+  01_&lt;name&gt;/
+    meta.json          roster record for that Bot
+    messages.jsonl     one JSON object per line
+    conversation.md    the same transcript, for reading
+    transcript.json    decoded entries
+    attachments/       downloaded files</code></pre>
+          <p>Folder numbers are at least two digits. The name is sanitized: path characters are replaced, and it is trimmed to 60 characters. Open <code>_index.md</code>, then a <code>conversation.md</code>. For scripts or an agent, prefer <code>messages.jsonl</code>.</p>
+          <table>
+            <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>seq</code></td><td>Order from the transcript</td></tr>
+              <tr><td><code>type</code></td><td><code>message</code>, <code>send-message</code>, <code>user-attachment</code>, <code>event</code>, <code>voice-call</code>, or another entry kind</td></tr>
+              <tr><td><code>role</code></td><td><code>user</code> or <code>assistant</code> on message entries. <code>send-message</code> is stored as <code>assistant</code>. <code>user-attachment</code> is stored as <code>user</code></td></tr>
+              <tr><td><code>content</code></td><td>Text. Empty for a bare user attachment</td></tr>
+              <tr><td><code>timestamp</code>, <code>timestampMs</code></td><td>Local time string, and the original millisecond value</td></tr>
+              <tr><td><code>attachment</code></td><td>File name and path fields when this entry has a file</td></tr>
+              <tr><td><code>localFile</code></td><td>Path relative to the Bot folder, such as <code>attachments/0007_name</code></td></tr>
+              <tr><td><code>event</code>, <code>call</code></td><td>Payload for those entry kinds</td></tr>
+              <tr><td><code>entryId</code>, <code>fromAgent</code>, <code>replyTo</code>, <code>messageType</code>, <code>raw</code></td><td>Present when the transcript has them</td></tr>
+            </tbody>
+          </table>
+          <p><code>meta.json</code> is the roster object. <code>name</code>, <code>agentId</code>, <code>status</code>, and <code>lastTurnAt</code> are the fields the MCP server displays.</p>
+
+          <h3>Regular chats</h3>
+          <pre><code>grok-chat-export-YYYYMMDD/
+  _index.md
+  conversations.jsonl       every message, one object per line
+  conversations/
+    0001_&lt;title&gt;.md         readable transcript
+    0001_&lt;title&gt;.json       id, title, times, raw responses</code></pre>
+          <p>Numbers are at least four digits. Titles are sanitized the same way as Bot names. When the API omits a title, the file uses <code>未命名对话</code>.</p>
+          <table>
+            <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>conversationId</code></td><td>grok.com conversation id</td></tr>
+              <tr><td><code>title</code></td><td>Conversation title</td></tr>
+              <tr><td><code>role</code></td><td><code>user</code> when the sender is <code>human</code>, otherwise <code>assistant</code></td></tr>
+              <tr><td><code>sender</code></td><td>Sender string from the API</td></tr>
+              <tr><td><code>content</code></td><td>Message text. When the body is not a string, the JSON text of that body</td></tr>
+              <tr><td><code>timestamp</code>, <code>timestampMs</code></td><td>Local time string, and <code>createTime</code></td></tr>
+            </tbody>
+          </table>
+          <p>The per-conversation JSON keeps the raw <code>messages</code> array plus <code>createTime</code> and <code>modifyTime</code>. A chat export has no <code>AGENTS.md</code>, and the MCP server does not index it.</p>
+        </div>
+      </section>
+
+      <section id="mcp">
+        <h2>6. MCP server for OpenCode</h2>
+        <div class="measure">
+          <p>The server is <code>grok-bot-mcp.py</code>. Point it at the Bot folder from the previous section, the one that contains <code>roster.json</code> and numbered Bot directories.</p>
+          <pre><code>python3 /absolute/path/to/grok-export-tool/grok-bot-mcp.py \
+  /absolute/path/to/grok-bot-export-YYYYMMDD</code></pre>
+          <p>It speaks JSON-RPC on stdin and stdout and waits. The agent client starts it; you do not leave that line running yourself. The script expands <code>~</code> in the directory argument. Prefer an absolute path, because some clients do not run the command through a shell.</p>
+          <p>If you leave the directory out, the server selects the newest <code>~/Downloads/grok-bot-export-*</code> by modification time. It does not look at <code>grok-chat-export-*</code>. Pass the Bot path explicitly.</p>
+
+          <h3>OpenCode</h3>
+          <p>The current schema at <code>https://opencode.ai/config.json</code> uses <code>mcp.servers</code>. Edit <code>~/.config/opencode/opencode.json</code>, or create <code>opencode.json</code> in a project.</p>
+          <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "grok-bot": {
+        "type": "local",
+        "command": [
+          "python3",
+          "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+          "/absolute/path/to/grok-bot-export-YYYYMMDD"
+        ],
+        "enabled": true
+      }
+    }
+  }
+}</code></pre>
+          <p>Replace both paths. System <code>python3</code> is enough, because the MCP file does not import <code>websocket</code> or <code>cryptography</code>. To use the exporter’s virtualenv instead, put <code>.venv/bin/python</code> first in <code>command</code>.</p>
+          <p>Start a new OpenCode session so it reloads config. Ask it to use the <code>grok-bot</code> tools: list the bots, then open one by the name you see.</p>
+          <table>
+            <thead><tr><th>Tool</th><th>Arguments</th><th>Behavior</th></tr></thead>
+            <tbody>
+              <tr><td><code>list_bots</code></td><td>none</td><td>Name, <code>agentId</code>, message count, last active time. The wording is Chinese</td></tr>
+              <tr><td><code>get_bot</code></td><td><code>bot</code> (required), <code>limit</code> (default 200)</td><td>Matches a folder prefix such as <code>01</code>, then a substring of the name or <code>agentId</code></td></tr>
+              <tr><td><code>search</code></td><td><code>query</code> (required), <code>context</code> (default 2)</td><td>Case-sensitive substring of <code>content</code>. Up to 10 hits, with neighboring messages</td></tr>
+            </tbody>
+          </table>
+
+          <h3>If OpenCode rejects <code>servers</code></h3>
+          <p>Some older builds want the server directly under <code>mcp</code>. The current schema marks that shape deprecated. Use it only when the <code>servers</code> form is rejected:</p>
+          <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "grok-bot": {
+      "type": "local",
+      "command": [
+        "python3",
+        "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+        "/absolute/path/to/grok-bot-export-YYYYMMDD"
+      ]
+    }
+  }
+}</code></pre>
+
+          <h3>OpenCode skill</h3>
+          <p>The skill file is <code>.claude/skills/grok-export/SKILL.md</code>. Claude Code and OpenCode read <code>.claude/skills/</code> in the project. The skill name is grok-export. Ask, in ordinary language, to export or to look something up in the Bot archive.</p>
+
+          <h3>Other agents</h3>
+          <p>Any stdio MCP client can launch the same program.</p>
+          <p>Claude Code, project scope, is <code>.mcp.json</code> at the project root. Approve it when Claude Code asks. User scope lives in <code>~/.claude.json</code>. The <code>mcpServers</code> object is the same either way:</p>
+          <pre><code>{
+  "mcpServers": {
+    "grok-bot": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+        "/absolute/path/to/grok-bot-export-YYYYMMDD"
+      ]
+    }
+  }
+}</code></pre>
+          <p>Codex reads <code>~/.codex/config.toml</code>, and <code>.codex/config.toml</code> in a trusted project:</p>
+          <pre><code>[mcp_servers.grok-bot]
+command = "python3"
+args = [
+  "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+  "/absolute/path/to/grok-bot-export-YYYYMMDD",
+]</code></pre>
+          <p>Cursor uses <code>.cursor/mcp.json</code> or <code>~/.cursor/mcp.json</code>:</p>
+          <pre><code>{
+  "mcpServers": {
+    "grok-bot": {
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+        "/absolute/path/to/grok-bot-export-YYYYMMDD"
+      ]
+    }
+  }
+}</code></pre>
+          <p>If a key is rejected, that client’s MCP page is the authority. The process to launch does not change.</p>
+          <p><code>list_bots</code> looks for subfolders that contain <code>meta.json</code>. A chat directory has none, and the reply says, in Chinese, that no export was found.</p>
+        </div>
+      </section>
+
+      <section id="troubleshooting">
+        <h2>7. Troubleshooting</h2>
+        <div class="measure">
+          <h3>Keychain prompt</h3>
+          <p>The exporter runs <code>security find-generic-password</code> for the item <strong>Chrome Safe Storage</strong>, account <strong>Chrome</strong>. Choose Allow, or Always Allow so later runs stay quiet. The password stays on the machine and decrypts Chrome’s cookie database. Do not paste it into an issue, a chat, or a commit. <a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">SECURITY.md</a> lists what a report must leave out.</p>
+          <p>If you choose Deny, the script exits with <code>未能从 Chrome 解密出 grok.com 登录态</code>. In Keychain Access, allow the terminal app you are using, then run the export again. A headless SSH session may be unable to answer the dialog; run it once in a graphical session.</p>
+
+          <h3>Chrome is not logged in</h3>
+          <p>The same exit line covers three causes:</p>
+          <ul>
+            <li>grok.com is not logged in inside Google Chrome.</li>
+            <li>The login is in a profile other than Default, Profile 1, or Profile 2. Sign in inside one of those three. This tool does not scan any further profile.</li>
+            <li>Keychain access was denied, so the cookies could not be decrypted.</li>
+          </ul>
+          <p>The tool needs both cookie names <code>sso</code> and <code>sso-rw</code>. If none of the three profile databases exist, the log also includes <code>未找到 Chrome 的 Default、Profile 1 或 Profile 2 Cookies 文件</code>. Log in, confirm the profile, allow Keychain, and run again. Quitting Chrome is necessary only when the cookie database itself cannot be copied.</p>
+
+          <h3>Empty Bot roster</h3>
+          <p>The log line <code>找到 0 个 bot</code> means the WebSocket roster returned no agents. The directory is still written: <code>AGENTS.md</code>, <code>_index.md</code>, and <code>roster.json</code>.</p>
+          <p>Regular chats show up under <code>--mode chat</code> or <code>--mode all</code>, in the chat directory. An account that only uses the main grok.com chat will have an empty Bot roster. A login in another Chrome profile is invisible unless that profile is Default, Profile 1, or Profile 2.</p>
+
+          <h3>Empty chat list</h3>
+          <p><code>找到 0 个普通会话</code> means the chat list was empty or the list request failed. Look for <code>会话列表请求失败（HTTP …)</code> just above it. HTTP 429 and HTTP 5xx are retried up to five times. A warning <code>拉取失败</code> on one title means that conversation was saved with whatever messages had already arrived. Other conversations in the same run are unaffected.</p>
+
+          <h3>Cookie database error</h3>
+          <p>If Python prints a traceback while copying Chrome’s Cookies file, quit Chrome completely, including background processes, and run the export again. The tool copies the database to a temp file, reads it, and deletes the copy. It does not print cookie values.</p>
+
+          <h3>Attachments missing</h3>
+          <p><code>--messages-only</code> skips downloads on purpose. On a full run, the summary line reports how many attachment jobs succeeded. A file is kept only when its download finishes. Re-run the full Bot export to retry files that are missing. Files larger than 2&nbsp;GB are skipped. Chat mode never writes an <code>attachments/</code> folder.</p>
+
+          <h3>MCP says there are no bots</h3>
+          <p>Pass the Bot directory, not the repository root and not the chat directory. The folder should contain subfolders with <code>meta.json</code>. Restart the agent client after changing the path.</p>
+
+          <h3>The run dies on the WebSocket or mid-list</h3>
+          <p>grok.com can change these interfaces without notice. Pull the latest <code>main</code> and try again. If it still fails, open an issue with the error text and the commit you ran. Leave out cookies, the Keychain password, agent ids, and transcript text. Security reports go through SECURITY.md, not a public issue.</p>
+        </div>
+      </section>
+
+      <section id="safety">
+        <h2>8. Safety</h2>
+        <div class="measure">
+          <ul>
+            <li>Back up an account you own.</li>
+            <li>Keep <code>~/Downloads/grok-bot-export-*</code> and <code>~/Downloads/grok-chat-export-*</code> private.</li>
+            <li>Do not commit exports, Chrome’s cookie database, or Keychain material.</li>
+            <li><code>grok-bot-mcp.py</code> does not open a network connection. The exporter does open connections to grok.com, using your existing session, to read history.</li>
+            <li>The tool does not send a new chat message and does not delete bots or conversations.</li>
+            <li>The exporter sets umask 077 and then marks the export tree so directories are mode 0700 and files are mode 0600. Logs do not include cookie values.</li>
+            <li>The project is not affiliated with xAI. Follow grok.com’s terms. Interfaces can break.</li>
+          </ul>
+          <p><a href="index.html">Home</a> · <a href="guide.zh-CN.html">中文教程</a> · <a href="index.html#contact">Contact and donate</a> are in the page footer, and on the <a href="https://github.com/LofiSu">GitHub profile</a>, at <a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a>, and <a href="https://x.com/QiuMilorw">Rowan on X</a>.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="contact">
+      <div class="cols">
+        <div>
+          <h2>Contact</h2>
+          <p>欢迎 Connect. Questions, collaboration, and a coffee chat are welcome.</p>
+          <ul>
+            <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="https://www.lofisu.chat/">Blog · lofisu.chat</a></li>
+            <li><a href="https://lofisu.vercel.app/">lofisu.vercel.app</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
+            <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Donate</h2>
+          <p>欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee.</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="https://www.buymeacoffee.com/LofiSu">Buy Me a Coffee</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">Sponsor by email</a></li>
+          </ul>
+          <p>If the coffee page 404s, use Sponsors or email.</p>
+        </div>
+        <div>
+          <h2>Project</h2>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/LICENSE">MIT License</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">Security</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="fine">grok-export-tool. Local backup of your own account.</p>
+    </footer>
+  </div>
+</body>
+</html>

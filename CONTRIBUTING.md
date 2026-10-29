@@ -7,7 +7,7 @@ Thanks for your interest in contributing! This is a small, dependency-light tool
 - **Bug fixes** — especially around the reverse-engineered endpoints (they can change without notice).
 - **New message/entry kinds** — Grok Bot transcripts have several `entryKind` values; adding clean handling for new ones is welcome.
 - **Platform support** — currently macOS + Chrome only. Help with Windows/Linux cookie decryption or browser support.
-- **Documentation** — English and Chinese (`README.md`, `README.zh-CN.md`).
+- **Documentation** — English and Chinese READMEs, `docs/guide.md`, `docs/guide.zh-CN.md`, and the Pages site in `docs/`.
 
 ## Setup
 

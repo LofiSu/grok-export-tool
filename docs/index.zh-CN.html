@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>grok-export-tool</title>
+  <meta name="description" content="导出你自己的 Grok Bot 和普通 Grok 对话。全程本地，无需 API key。命令行、MCP server 和 Agent skills。">
+  <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/index.zh-CN.html">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#content">跳到正文</a>
+  <div class="frame">
+    <header class="site-header">
+      <a class="wordmark" href="index.zh-CN.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
+      <nav>
+        <a href="guide.zh-CN.html">教程</a>
+        <a href="index.html" lang="en">English</a>
+        <a href="https://github.com/LofiSu/grok-export-tool">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="content">
+      <header class="hero">
+        <p class="kicker">本地 · 你的账号 · 无需 API key</p>
+        <h1>grok-export-tool</h1>
+        <p class="deck">导出 Grok Bot 和普通对话。MCP server 与 Agent skills。全程本地，无需 API key。</p>
+        <p class="scope">给已经登录 grok.com 的 Chrome 用的本地导出器：带附件的 Grok Bot，以及普通 Grok 对话。它读取你已经有的历史，不发送新对话。</p>
+        <div class="actions">
+          <a class="primary" href="guide.zh-CN.html">阅读教程</a>
+          <a href="https://github.com/LofiSu/grok-export-tool">查看源码</a>
+        </div>
+        <figure class="poster">
+          <img src="assets/poster.png" alt="grok-export-tool。导出 Grok Bot 和普通对话。MCP server 与 Agent skills。全程本地，无需 API key。">
+        </figure>
+      </header>
+
+      <section id="features">
+        <h2>特性</h2>
+        <div class="measure">
+          <ul>
+            <li>当前 Chrome 登录态能看到的全部 Grok Bot：名单、完整记录、附件。附件按 4MB 分块并行下载。</li>
+            <li>普通 Grok 对话在另一个目录：Markdown、原始 JSON，以及一份合并的 JSONL。</li>
+            <li>只想要 Bot 的文字时，可以跳过附件下载。</li>
+            <li>零第三方依赖的 stdio MCP server：<code>list_bots</code>、<code>get_bot</code>、<code>search</code>。它读取的是 Bot 归档。</li>
+            <li>Agent Skill 在 <code>.claude/skills/grok-export/</code>，Claude Code、OpenCode 以及其他会加载这个目录的 Agent 都能用。</li>
+          </ul>
+          <p>macOS 通过钥匙串读取 Chrome。Windows 可以用 DPAPI。Linux 是尽力而为，三个平台都可以用 <code>--cookie</code>。普通对话导出保存文本和原始 JSON，不下载附件文件。</p>
+        </div>
+      </section>
+
+      <section id="quick-start">
+        <h2>快速开始</h2>
+        <div class="measure">
+          <pre><code>git clone https://github.com/LofiSu/grok-export-tool.git
+cd grok-export-tool
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+
+python3 grok-bot-export.py                  # Bot，含附件
+python3 grok-bot-export.py --messages-only  # Bot，只要文字
+python3 grok-bot-export.py --mode chat      # 普通对话
+python3 grok-bot-export.py --mode all       # 两者都导出</code></pre>
+          <p>第一次运行时，macOS 会询问钥匙串项目 Chrome Safe Storage。选择允许。未指定目录时，文件写到 <code>~/Downloads/</code>。进度日志是中文。<a href="guide.zh-CN.html">教程</a>写了每种导出、如何阅读归档、OpenCode，以及真正会遇到的问题。</p>
+        </div>
+      </section>
+
+      <section id="guide">
+        <h2>教程</h2>
+        <ol class="toc measure">
+          <li><a href="guide.zh-CN.html">中文教程 <span>01</span></a></li>
+          <li><a href="guide.html" lang="en">English guide <span>02</span></a></li>
+          <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.zh-CN.md">Markdown 源文件 <span>03</span></a></li>
+        </ol>
+      </section>
+
+      <section id="mcp">
+        <h2>MCP</h2>
+        <div class="measure">
+          <p><code>grok-bot-mcp.py</code> 通过 stdio 提供 MCP。把 Bot 导出目录传给它。它自己不发起网络连接，也不索引普通对话导出。</p>
+          <p>OpenCode、Claude Code、Codex 和 Cursor 的配置写在<a href="guide.zh-CN.html#mcp">教程</a>里。</p>
+        </div>
+      </section>
+
+      <section id="output">
+        <h2>输出布局</h2>
+        <div class="measure">
+          <p>Bot 在 <code>~/Downloads/grok-bot-export-YYYYMMDD/</code>。每个 Bot 是一个带序号的文件夹，里面有 <code>messages.jsonl</code>、<code>conversation.md</code>、<code>transcript.json</code> 和 <code>attachments/</code>。先看 <code>_index.md</code>。</p>
+          <p>普通对话在 <code>~/Downloads/grok-chat-export-YYYYMMDD/</code>，每个会话一份 Markdown 和一份 JSON。<code>--mode all</code> 同时又指定了目录时，普通对话写到该路径加上 <code>-chat</code>。</p>
+        </div>
+      </section>
+
+      <section id="disclaimer">
+        <h2>免责声明</h2>
+        <div class="measure">
+          <p>由社区维护，不是 xAI 发布的产品。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="contact">
+      <div class="cols">
+        <div>
+          <h2>联系</h2>
+          <p>欢迎 Connect。也欢迎协作，或约一次咖啡聊。</p>
+          <ul>
+            <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="https://www.lofisu.chat/">博客 · lofisu.chat</a></li>
+            <li><a href="https://lofisu.vercel.app/">lofisu.vercel.app</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
+            <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>捐赠</h2>
+          <p>欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee。</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="https://www.buymeacoffee.com/LofiSu">Buy Me a Coffee</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">邮件赞助</a></li>
+          </ul>
+          <p>如果咖啡页面 404，改用 Sponsors 或邮件。</p>
+        </div>
+        <div>
+          <h2>项目</h2>
+          <ul>
+            <li><a href="guide.zh-CN.html">教程</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/LICENSE">MIT 许可证</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">安全政策</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="fine">grok-export-tool。导出 Grok Bot 和普通对话。全程本地，无需 API key。</p>
+    </footer>
+  </div>
+</body>
+</html>
