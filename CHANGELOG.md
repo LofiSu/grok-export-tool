@@ -44,5 +44,12 @@ This project does not assign version numbers yet. Entries are grouped by calenda
 
 - Added the approved logo at `docs/assets/logo.png` and `docs/assets/grok-bot-logo.png`, and the poster at `docs/assets/poster.png`. The poster leads both READMEs and the Pages home. The logo is the site icon.
 - Docs now describe both Grok Bots and regular chats, the CLI, the MCP server, and the Agent Skill at `.claude/skills/grok-export/`.
-- Contact is GitHub and email. Donations are GitHub Sponsors or email.
+- Contact and donate were added to the README and the site footer.
 - Merged Windows, Linux, and `--cookie` support from `main`. Cookie values are still not printed, and the database copy is still removed before decryption.
+
+### Copy
+
+- Tightened the README and site hero, the on-page links, and the tutorial links in both languages. The site is linked as the live guide, not as a page that still needs Pages turned on.
+- Contact is GitHub and lofisuchat@gmail.com. Donate is GitHub Sponsors and the same email.
+- Refreshed the suggested About description in `REPO_META.md`. The website field stays `https://lofisu.github.io/grok-export-tool/`.
+- The English guide page now says the backup is fully local, with no API key. The disclaimer stays a community-maintained note.

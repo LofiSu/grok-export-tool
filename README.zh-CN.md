@@ -4,15 +4,13 @@
 
 # grok-export-tool
 
-导出 Grok Bot 和普通对话。
+导出你的 **Grok Bot** 和**普通对话**。本地命令行、stdio MCP server，以及 Agent skills。全程本地，无需 API key。
 
-MCP server 与 Agent skills。
+它备份这台电脑上已经登录的 [grok.com](https://grok.com) 账号。每个 Bot 都会保存名单、完整记录和附件。普通对话写到另一个目录。人和 Agent 都能读这份归档：一个很小的 MCP server 和一份 Agent Skill，让 [OpenCode](https://opencode.ai)、Claude Code、Codex 等查询 Bot 归档。
 
-全程本地，无需 API key。
+它读取你已经有的历史。它不发送新对话。
 
-这是给你自己的 [grok.com](https://grok.com) 账号用的本地导出器：每一个 **Grok Bot**（名单、完整记录、附件），以及**普通 Grok 对话**。它写成人和 Agent 都好读的归档，再用一个很小的 stdio **MCP server** 和一份 **Agent Skill**，让 [OpenCode](https://opencode.ai)、Claude Code、Codex 等查询 Bot 归档。
-
-它跑在已经登录 Chrome 的那台电脑上。读取的是你已经有的历史。它不发送新对话。
+[特性](#特性) · [快速开始](#快速开始) · [教程](#教程) · [MCP](#mcp) · [Agent skills](#agent-skills) · [输出布局](#输出布局) · [联系](#联系) · [捐赠](#捐赠)
 
 ## 特性
 
@@ -60,13 +58,15 @@ python3 grok-bot-export.py --cookie "sso=...; sso-rw=..."
 
 进度日志是中文。未指定目录时，文件写到 `~/Downloads/`。
 
-[使用教程](docs/guide.zh-CN.md) 按步骤写了安装、每种导出、归档、MCP、skills，以及真正会遇到的问题。
+逐步说明在[教程](#教程)。
 
 ## 教程
 
-- English：[docs/guide.md](docs/guide.md)
-- 中文：[docs/guide.zh-CN.md](docs/guide.zh-CN.md)
-- 网站（在 `main` 上启用 GitHub Pages 之后）：[lofisu.github.io/grok-export-tool](https://lofisu.github.io/grok-export-tool/)
+同一份教程，中英都有，网站和仓库里各一份。内容包括安装、每种导出、归档、MCP、skills，以及真正会遇到的问题。
+
+- **网站：** [lofisu.github.io/grok-export-tool](https://lofisu.github.io/grok-export-tool/) · [中文首页](https://lofisu.github.io/grok-export-tool/index.zh-CN.html)
+- **中文：** [docs/guide.zh-CN.md](docs/guide.zh-CN.md) · [网站上的教程](https://lofisu.github.io/grok-export-tool/guide.zh-CN.html)
+- **English:** [docs/guide.md](docs/guide.md) · [on the site](https://lofisu.github.io/grok-export-tool/guide.html)
 
 ## MCP
 
@@ -148,27 +148,21 @@ Grok Bot（默认，或 `--mode all` 的 Bot 那一半）：
 
 ## 免责声明
 
-这个项目由社区维护，不是 xAI 发布的产品。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。漏洞请私下报告，报告中不要包含 cookie 或对话内容，见 [SECURITY.md](SECURITY.md)。
+这个项目由社区在公开仓库里维护，不是 xAI 发布的产品。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。漏洞请私下报告，报告中不要包含 cookie 或对话内容，见 [SECURITY.md](SECURITY.md)。
 
-## 联系与交流
+## 联系
 
-欢迎来信，也欢迎一起做。使用上的问题、文档勘误、平台支持，或约一次咖啡聊，都可以。
-
-欢迎 Connect。
+欢迎来信，也欢迎一起做。使用上的问题、文档勘误、某个平台上的帮助，或只是打个招呼，都可以。
 
 - GitHub：[github.com/LofiSu](https://github.com/LofiSu)
 - 邮箱：[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 
 ## 捐赠
 
-欢迎捐赠 · 欢迎赞助。
-
-如果这次备份省下了时间，下面任意一种都很好：
+如果这次备份省下了时间，一份赞助就是很好的致谢。随缘就好。
 
 - [GitHub Sponsors](https://github.com/sponsors/LofiSu)
-- 也可以发邮件到 [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) 说一声赞助
-
-随缘就好。
+- 也可以写信到 [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 
 ## 许可证
 

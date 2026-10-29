@@ -4,15 +4,13 @@
 
 # grok-export-tool
 
-Export Grok Bots and chats.
+Export your **Grok Bots** and your **regular chats**. A local CLI, a stdio MCP server, and agent skills. Fully local, no API key.
 
-MCP server and agent skills.
+It backs up the [grok.com](https://grok.com) account already signed in on this machine. Every Bot is saved with its roster, transcript, and attachments. Regular chats land in a second folder. People can read the archive, and so can agents: a small MCP server and an Agent Skill let [OpenCode](https://opencode.ai), Claude Code, Codex, and others query the Bot archive.
 
-Fully local, no API key.
+It reads history you already have. It does not send new chats.
 
-A local exporter for your own [grok.com](https://grok.com) account: every **Grok Bot** (roster, transcript, and attachments) and your **regular Grok chats**. It writes an archive people and agents can read, then a small stdio **MCP server** and an **Agent Skill** let [OpenCode](https://opencode.ai), Claude Code, Codex, and others query the Bot archive.
-
-It runs on the machine where Chrome is already logged in. It reads history you already have. It does not send new chats.
+[Features](#features) · [Quick start](#quick-start) · [Tutorial](#tutorial) · [MCP](#mcp) · [Agent skills](#agent-skills) · [Output](#output-layout) · [Contact](#contact) · [Donate](#donate)
 
 ## Features
 
@@ -60,13 +58,15 @@ Copy `sso` and `sso-rw` from your own browser’s DevTools. Do not paste those v
 
 Progress lines are in Chinese. Output lands in `~/Downloads/` unless you pass a directory.
 
-The [usage guide](docs/guide.md) walks through install, each mode, the archive, MCP, skills, and the failures that actually happen.
+Step-by-step help is in the [tutorial](#tutorial).
 
 ## Tutorial
 
-- English: [docs/guide.md](docs/guide.md)
-- 中文：[docs/guide.zh-CN.md](docs/guide.zh-CN.md)
-- Site (after GitHub Pages is enabled on `main`): [lofisu.github.io/grok-export-tool](https://lofisu.github.io/grok-export-tool/)
+The same guide, in both languages, on the site and in the repo. It covers install, each mode, the archive, MCP, skills, and the failures that actually happen.
+
+- **Site:** [lofisu.github.io/grok-export-tool](https://lofisu.github.io/grok-export-tool/) · [中文首页](https://lofisu.github.io/grok-export-tool/index.zh-CN.html)
+- **English:** [docs/guide.md](docs/guide.md) · [on the site](https://lofisu.github.io/grok-export-tool/guide.html)
+- **中文:** [docs/guide.zh-CN.md](docs/guide.zh-CN.md) · [网站上的教程](https://lofisu.github.io/grok-export-tool/guide.zh-CN.html)
 
 ## MCP
 
@@ -148,27 +148,21 @@ Start with `_index.md`. For a Bot, read `conversation.md` or `messages.jsonl`. `
 
 ## Disclaimer
 
-This project is maintained in the open. It is not published by xAI. grok.com’s interfaces can change without notice. Back up an account you own, and follow grok.com’s terms. Treat the export folder as private. Vulnerability reports stay private and must not include cookies or transcripts; see [SECURITY.md](SECURITY.md).
+This project is maintained by the community, in the open. It is not published by xAI. grok.com’s interfaces can change without notice. Back up an account you own, and follow grok.com’s terms. Treat the export folder as private. Vulnerability reports stay private and must not include cookies or transcripts; see [SECURITY.md](SECURITY.md).
 
-## Contact & Connect
+## Contact
 
-Questions, corrections, and collaboration are welcome — usage notes, doc fixes, platform help, or a coffee chat.
-
-欢迎 Connect.
+Questions and collaboration are welcome: a usage note, a doc fix, help on a platform, or just a hello.
 
 - GitHub: [github.com/LofiSu](https://github.com/LofiSu)
 - Email: [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 
 ## Donate
 
-欢迎捐赠 · 欢迎赞助.
-
-If this backup saved you time, any of these is plenty:
+If this backup saved you time, a sponsorship is a kind way to say so. Only if you want to.
 
 - [GitHub Sponsors](https://github.com/sponsors/LofiSu)
-- A note to [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) if you would rather sponsor by email
-
-Only if you want to.
+- Or a note to [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 
 ## License
 
