@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Python smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Confirm MIT license
+        run: |
+          test -s LICENSE
+          head -n 1 LICENSE | grep -qx "MIT License"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Byte-compile sources
+        run: python -m compileall -q grok-bot-export.py grok-bot-mcp.py
+
+      - name: Syntax-check shell wrappers
+        run: bash -n export.sh export-messages.sh
+
+      - name: Export CLI help
+        run: python grok-bot-export.py --help
+
+      - name: MCP server stdio dry-run
+        run: |
+          set -euo pipefail
+          data_dir="$(mktemp -d)"
+          out="${RUNNER_TEMP:-/tmp}/mcp-out.json"
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | python grok-bot-mcp.py "$data_dir" > "$out"
+          python - "$out" <<'PY'
+          import json
+          import sys
+
+          path = sys.argv[1]
+          with open(path, encoding="utf-8") as handle:
+              lines = [json.loads(line) for line in handle if line.strip()]
+          if len(lines) != 2:
+              raise SystemExit(f"expected 2 JSON-RPC responses, got {len(lines)}")
+          init, tools = lines
+          if init.get("jsonrpc") != "2.0" or init.get("id") != 1:
+              raise SystemExit(f"unexpected initialize response: {init}")
+          info = init["result"]["serverInfo"]
+          if info.get("name") != "grok-bot-mcp":
+              raise SystemExit(f"unexpected serverInfo: {info}")
+          names = {tool["name"] for tool in tools["result"]["tools"]}
+          expected = {"list_bots", "get_bot", "search"}
+          if names != expected:
+              raise SystemExit(f"unexpected tools: {sorted(names)}")
+          print("mcp smoke ok:", ", ".join(sorted(names)))
+          PY
