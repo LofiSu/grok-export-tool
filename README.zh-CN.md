@@ -155,6 +155,7 @@ Grok Bot（默认，或 `--mode all` 的 Bot 那一半）：
 欢迎来信，也欢迎一起做。使用上的问题、文档勘误、某个平台上的帮助，或只是打个招呼，都可以。
 
 - GitHub：[github.com/LofiSu](https://github.com/LofiSu)
+- X：[X / @su_lofi](https://x.com/su_lofi)
 - 邮箱：[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 
 ## 捐赠

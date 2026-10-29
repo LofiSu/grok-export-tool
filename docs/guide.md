@@ -396,5 +396,5 @@ grok.com can change these interfaces without notice. Pull the latest `main` and 
 - [README](../README.md) · [中文说明](../README.zh-CN.md)
 - [Project site](https://lofisu.github.io/grok-export-tool/) · [中文首页](https://lofisu.github.io/grok-export-tool/index.zh-CN.html)
 - [This guide on the site](https://lofisu.github.io/grok-export-tool/guide.html) · [中文教程](https://lofisu.github.io/grok-export-tool/guide.zh-CN.html)
-- [Contact](../README.md#contact) — [GitHub](https://github.com/LofiSu), [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
+- [Contact](../README.md#contact) — [GitHub](https://github.com/LofiSu), [X / @su_lofi](https://x.com/su_lofi), [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 - [Donate](../README.md#donate) — [GitHub Sponsors](https://github.com/sponsors/LofiSu)

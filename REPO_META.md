@@ -46,7 +46,7 @@ That is the GitHub Pages site for this repository (user `LofiSu`; Pages hostname
 - Paste the description above into the About box if it still shows the previous sentence. This change does not update About through the API.
 - Leave the website as `https://lofisu.github.io/grok-export-tool/`.
 - Topics already on the repository can stay. The list above is the intended set.
-- Contact in the README and on the site is GitHub (`https://github.com/LofiSu`) and lofisuchat@gmail.com. Donate is GitHub Sponsors (`https://github.com/sponsors/LofiSu`) and the same email. Sponsors for `LofiSu` may still be off; the email still works.
+- Contact in the README and on the site is GitHub (`https://github.com/LofiSu`), X (`https://x.com/su_lofi`, @su_lofi), and lofisuchat@gmail.com. Donate is GitHub Sponsors (`https://github.com/sponsors/LofiSu`) and the same email. Sponsors for `LofiSu` may still be off; the email still works.
 - The approved logo is `docs/assets/logo.png` (same bytes as `docs/assets/grok-bot-logo.png`). The poster is `docs/assets/poster.png`.
 
 ## Before making the repository public
