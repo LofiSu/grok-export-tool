@@ -1,64 +1,67 @@
 ---
 name: grok-export
-description: Export complete Grok Bot and regular Grok chat data from grok.com (conversations + multimodal attachments) into an Agent-friendly format, then query it via an MCP server. Use when the user wants to back up, export, or reference their Grok data — including Chinese prompts like 导出/备份 Grok 数据, or specific bot names (法律顾问, Coding任务管家, etc.).
+description: Export Grok Bots and regular Grok chats from grok.com into a local archive, then query Bot archives with the MCP server. Use for backup or lookup requests, including 导出/备份 Grok 数据, or a fictional bot name such as Example Bot.
 license: MIT
-compatibility: Requires Python 3.9+, Google Chrome logged into grok.com, and `pip install -r requirements.txt`. macOS auto-decrypts cookies; Windows/Linux may need `--cookie`.
+compatibility: Requires Python 3.9+ and `pip install -r requirements.txt`. macOS can read Chrome cookies from the Keychain. Windows and Linux may need `--cookie "sso=...; sso-rw=..."`.
 ---
 
 # Grok Export
 
-Export all Grok Bot and regular Grok chat data under a grok.com account, and query it for context.
+Export Grok Bots (conversations and attachments) and regular Grok chats, then query the Bot archive.
 
 ## When to use
 
-- User wants to export or back up their Grok Bot / Grok chat data.
-- User wants to reference or recover context from their Grok Bots.
-- User mentions "Grok Bot", "grok bot 数据", "导出", "备份", or a specific bot name.
+- User wants to export or back up Grok Bots or regular Grok chats.
+- User wants to look something up in a Bot archive.
+- User mentions "Grok Bot", "导出", or "备份".
 
 ## Workflow
 
 ### 1. Export data
 
-Run the export script `grok-bot-export.py` at the repo root:
+Run from the repository root:
 
 ```bash
-# Grok Bots (default): full export (conversations + attachments, idempotent)
+# Grok Bots (default): messages and attachments. Re-runs skip non-empty files.
 python3 grok-bot-export.py
 
-# Grok Bots: messages only (~20 s, no attachments)
+# Grok Bots: text only. Skips attachment downloads.
 python3 grok-bot-export.py --messages-only
 
-# Regular Grok chats (non-Bot conversations)
+# Regular Grok chats (text and raw JSON, no attachment files)
 python3 grok-bot-export.py --mode chat
 
-# Both Bots and regular chats
+# Both. Two directories.
 python3 grok-bot-export.py --mode all
 ```
 
-Output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/` (or `grok-chat-export-YYYYMMDD/` for chat mode).
+Bot output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/`. Chat output defaults to `~/Downloads/grok-chat-export-YYYYMMDD/`. With `--mode all` and a directory argument, chats go to that path plus `-chat`.
 
-Requirements: Python 3.9+, Google Chrome logged into grok.com, `pip install -r requirements.txt`. On Windows/Linux, if automatic cookie decryption fails, pass `--cookie "sso=...; sso-rw=..."`.
+On macOS the first run needs Keychain access to Chrome Safe Storage. On Windows or Linux, if automatic decryption fails, pass placeholders only in real use of your own session: `--cookie "sso=...; sso-rw=..."`. Do not paste those values into chat, issues, or git.
 
 ### 2. Query the exported data
 
-Preferred: call the `grok-bot` MCP server (if configured) — structured and context-safe:
+Preferred for Bots: the `grok-bot` MCP server.
 
-- `list_bots` — list every bot (name, agentId, message count, last active).
-- `get_bot` — read a bot's full context; pass `limit` to cap messages (default 200).
-- `search` — keyword search across all bots with surrounding context.
+- `list_bots` — name, agentId, message count, last active.
+- `get_bot` — one bot. `limit` defaults to 200.
+- `search` — keyword search with neighboring lines.
 
-Fallback (read files directly):
+The MCP server reads Bot folders only. Read a chat export from `_index.md` and `conversations/`.
 
-- `AGENTS.md` — overall structure.
-- `<NN_<bot>/>/messages.jsonl` — normalized message stream (one JSON per line).
-- `<NN_<bot>/>/conversation.md` — readable, role-labeled dialogue.
-- `<NN_<bot>/>/attachments/` — downloaded images/videos/files.
+Fallback for a Bot folder:
+
+- `AGENTS.md`
+- `messages.jsonl`
+- `conversation.md`
+- `attachments/`
 
 ## Output schema (messages.jsonl)
 
-Each line is one JSON message: `seq`, `type` (message / send-message / user-attachment / event / voice-call), `role` (user / assistant), `content`, `timestamp`, `attachment`, `localFile`, `event`, `call`.
+Each line is one JSON object: `seq`, `type` (message / send-message / user-attachment / event / voice-call), `role` (user / assistant), `content`, `timestamp`, `attachment`, `localFile`, `event`, `call`.
 
 ## Notes
 
-- The tool reads history over grok.com's internal WebSocket API using the cookies of an already-logged-in Chrome. It never sends messages, deletes, or modifies data, and is not affected by message quota.
-- Always prefer `get_bot`/`search` (MCP) over reading raw files, to keep context bounded.
+- The tool reads history you already have. It does not send new chats and does not delete data.
+- Bot history uses the bot WebSocket. Regular chats use grok.com's app-chat HTTP API, which can return HTTP 429 and is retried.
+- Prefer `get_bot` / `search` over pasting whole Bot files into the prompt.

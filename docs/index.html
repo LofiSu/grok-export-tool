@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>grok-export-tool</title>
+  <meta name="description" content="Export your own Grok Bots and regular Grok chats. Fully local, no API key. CLI, MCP server, and agent skills.">
+  <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <div class="frame">
+    <header class="site-header">
+      <a class="wordmark" href="index.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
+      <nav>
+        <a href="guide.html">Guide</a>
+        <a href="index.zh-CN.html" lang="zh-Hans">中文</a>
+        <a href="https://github.com/LofiSu/grok-export-tool">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="content">
+      <header class="hero">
+        <p class="kicker">Local · Your account · No API key</p>
+        <h1>grok-export-tool</h1>
+        <p class="deck">Export Grok Bots and chats. MCP server and agent skills. Fully local, no API key.</p>
+        <p class="scope">A local exporter for the Chrome session already logged in to grok.com: Grok Bots with attachments, and regular Grok chats. It reads history you already have. It does not send new chats.</p>
+        <div class="actions">
+          <a class="primary" href="guide.html">Read the guide</a>
+          <a href="https://github.com/LofiSu/grok-export-tool">View the source</a>
+        </div>
+        <figure class="poster">
+          <img src="assets/poster.png" alt="grok-export-tool. Export Grok Bots and chats. MCP server and agent skills. Fully local, no API key.">
+        </figure>
+      </header>
+
+      <section id="features">
+        <h2>Features</h2>
+        <div class="measure">
+          <ul>
+            <li>Every Grok Bot the signed-in Chrome session can see: roster, full transcript, and attachments, in parallel 4&nbsp;MB chunks.</li>
+            <li>Regular Grok chats in a second folder: Markdown, raw JSON, and one combined JSONL file.</li>
+            <li>A local CLI for Bots, regular chats, or both, with a messages-only option for Bots.</li>
+            <li>A stdio MCP server with no third-party dependencies: <code>list_bots</code>, <code>get_bot</code>, <code>search</code>. It reads the Bot archive.</li>
+            <li>An Agent Skill at <code>.claude/skills/grok-export/</code> for Claude Code, OpenCode, and other agents.</li>
+          </ul>
+          <p>macOS reads Chrome through the Keychain. Windows can use DPAPI. Linux is best-effort, and every platform can pass <code>--cookie</code>. Chat export records text and raw JSON; it does not download attachment files.</p>
+        </div>
+      </section>
+
+      <section id="quick-start">
+        <h2>Quick start</h2>
+        <div class="measure">
+          <pre><code>git clone https://github.com/LofiSu/grok-export-tool.git
+cd grok-export-tool
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+
+python3 grok-bot-export.py                  # Bots, with attachments
+python3 grok-bot-export.py --messages-only  # Bots, text only
+python3 grok-bot-export.py --mode chat      # regular chats
+python3 grok-bot-export.py --mode all       # both</code></pre>
+          <p>On macOS the first run asks for the Keychain item Chrome Safe Storage. Allow it. Windows and Linux can use <code>--cookie</code> when automatic decryption fails. Output goes to <code>~/Downloads/</code> unless you pass a directory. Progress lines are in Chinese. The <a href="guide.html">guide</a> covers each mode, the archive, MCP, skills, and the failures that actually happen.</p>
+        </div>
+      </section>
+
+      <section id="guide">
+        <h2>Tutorial</h2>
+        <ol class="toc measure">
+          <li><a href="guide.html">English guide <span>01</span></a></li>
+          <li><a href="guide.zh-CN.html" lang="zh-Hans">中文教程 <span>02</span></a></li>
+          <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.md">Markdown source <span>03</span></a></li>
+        </ol>
+      </section>
+
+      <section id="mcp">
+        <h2>MCP</h2>
+        <div class="measure">
+          <p><code>grok-bot-mcp.py</code> speaks MCP over stdio. Pass it the Bot export directory. It does not open a network connection, and it does not index a regular chat export.</p>
+          <p>OpenCode configuration, Claude Code, Codex, and Cursor are written out in the <a href="guide.html#mcp">guide</a>.</p>
+        </div>
+      </section>
+
+      <section id="output">
+        <h2>Output layout</h2>
+        <div class="measure">
+          <p>Bots land in <code>~/Downloads/grok-bot-export-YYYYMMDD/</code>. Each Bot is a numbered folder with <code>messages.jsonl</code>, <code>conversation.md</code>, <code>transcript.json</code>, and <code>attachments/</code>. Start with <code>_index.md</code>.</p>
+          <p>Regular chats land in <code>~/Downloads/grok-chat-export-YYYYMMDD/</code>, with one Markdown file and one JSON file per conversation. With <code>--mode all</code> and a directory you chose, chats are written to that path plus <code>-chat</code>.</p>
+        </div>
+      </section>
+
+      <section id="disclaimer">
+        <h2>Disclaimer</h2>
+        <div class="measure">
+          <p>Maintained in the open. It is not published by xAI. grok.com’s interfaces can change without notice. Back up an account you own, and follow grok.com’s terms. Treat the export folder as private.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="contact">
+      <div class="cols">
+        <div>
+          <h2>Contact</h2>
+          <p>欢迎 Connect. Questions, collaboration, and a coffee chat are welcome.</p>
+          <ul>
+            <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Donate</h2>
+          <p>欢迎捐赠 · 欢迎赞助.</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">Sponsor by email</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Project</h2>
+          <ul>
+            <li><a href="guide.html">Guide</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/LICENSE">MIT License</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">Security</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="fine">grok-export-tool. Export Grok Bots and chats. Fully local, no API key.</p>
+    </footer>
+  </div>
+</body>
+</html>

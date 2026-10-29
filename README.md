@@ -1,137 +1,174 @@
-# grok-export-tool
-
 [English](README.md) · [中文](README.zh-CN.md)
 
-Export your complete **Grok Bot** data from [grok.com](https://grok.com) — every conversation plus all multimodal attachments (images, videos, files) — into an **Agent-friendly** format, with a lightweight **MCP server** and **Agent Skill** so AI assistants (Codex, Claude Code, OpenCode, …) can query the context directly.
+![grok-export-tool. Export Grok Bots and chats. MCP server and agent skills. Fully local, no API key.](docs/assets/poster.png)
 
-> Fully local. No browser extension, no re-login, no API key, and **no message-quota dependency** — it reads history over grok.com's internal WebSocket API using the cookies from your already-logged-in Chrome.
+# grok-export-tool
+
+Export Grok Bots and chats.
+
+MCP server and agent skills.
+
+Fully local, no API key.
+
+A local exporter for your own [grok.com](https://grok.com) account: every **Grok Bot** (roster, transcript, and attachments) and your **regular Grok chats**. It writes an archive people and agents can read, then a small stdio **MCP server** and an **Agent Skill** let [OpenCode](https://opencode.ai), Claude Code, Codex, and others query the Bot archive.
+
+It runs on the machine where Chrome is already logged in. It reads history you already have. It does not send new chats.
 
 ## Features
 
-- 📦 Exports every Grok Bot under your account (roster + full transcript)
-- 🖼️ Downloads multimodal attachments (images / videos / files) in parallel, 4 MB chunks
-- 🧠 Outputs an Agent-friendly structure (normalized JSONL + readable Markdown + raw JSON)
-- 🔌 Lightweight, zero-dependency MCP server (`list_bots` / `get_bot` / `search`)
+- **CLI.** `grok-bot-export.py` exports Bots, regular chats, or both (`--mode bot`, `--mode chat`, `--mode all`). `--messages-only` skips Bot attachment downloads.
+- **Grok Bots.** Roster, full transcript, and attachments (images, video, and other files), in parallel 4 MB chunks.
+- **Regular chats.** A second folder: Markdown and raw JSON per conversation, plus one combined JSONL file.
+- **Archive.** Normalized JSONL, readable Markdown, and raw JSON, with an index.
+- **MCP.** A stdio server with no third-party dependencies: `list_bots`, `get_bot`, `search`. It reads the Bot archive.
+- **Skills.** `.claude/skills/grok-export/` is an Agent Skill for Claude Code, OpenCode, and other agents that load that folder.
 
-## Platform support
+Bot history goes over grok.com’s bot WebSocket. Regular chats go over grok.com’s app-chat HTTP API, which can respond with HTTP 429; those requests are retried. The MCP server does not index a chat export. Open those files yourself, or point an agent at the folder.
 
-| Platform | Cookie auth |
+## Quick start
+
+```bash
+git clone https://github.com/LofiSu/grok-export-tool.git
+cd grok-export-tool
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+Python 3.9 or newer. Dependencies are `websocket-client` and `cryptography` ([requirements.txt](requirements.txt)). On Windows, automatic cookie decryption also needs `pywin32`. The MCP server uses the standard library only.
+
+```bash
+python3 grok-bot-export.py                  # Grok Bots, messages and attachments
+python3 grok-bot-export.py --messages-only  # Grok Bots, text only
+python3 grok-bot-export.py --mode chat      # regular Grok chats
+python3 grok-bot-export.py --mode all       # both
+```
+
+The same three entry points exist as `./export.sh`, `./export-messages.sh`, and `./export-chat.sh`.
+
+| Platform | Cookie login |
 | --- | --- |
-| **macOS** | Auto-decrypts via the Keychain ("Chrome Safe Storage"). |
-| **Windows** | Auto-decrypts via DPAPI (`pip install pywin32`); if Chrome uses App-Bound Encryption, use `--cookie`. |
-| **Linux** | Best-effort (legacy "peanuts" key / plaintext); otherwise use `--cookie`. |
-
-Universal fallback for any platform:
+| macOS | Keychain item **Chrome Safe Storage**. Profiles scanned: Default, Profile 1, Profile 2. |
+| Windows | DPAPI when `pywin32` is installed. App-Bound Encryption needs `--cookie`. |
+| Linux | Best effort. If that fails, use `--cookie`. |
 
 ```bash
 python3 grok-bot-export.py --cookie "sso=...; sso-rw=..."
 ```
 
-(Copy the `sso` and `sso-rw` values from DevTools → Application → Cookies → grok.com.)
+Copy `sso` and `sso-rw` from your own browser’s DevTools. Do not paste those values into an issue, a chat, or git.
 
-Requires Python 3.9+.
+Progress lines are in Chinese. Output lands in `~/Downloads/` unless you pass a directory.
 
-## Install
+The [usage guide](docs/guide.md) walks through install, each mode, the archive, MCP, skills, and the failures that actually happen.
 
-```bash
-pip install -r requirements.txt
-```
+## Tutorial
 
-## Usage
+- English: [docs/guide.md](docs/guide.md)
+- 中文：[docs/guide.zh-CN.md](docs/guide.zh-CN.md)
+- Site (after GitHub Pages is enabled on `main`): [lofisu.github.io/grok-export-tool](https://lofisu.github.io/grok-export-tool/)
 
-```bash
-# Grok Bots (default): full export (messages + attachments)
-python3 grok-bot-export.py
+## MCP
 
-# Grok Bots: messages only (fast, ~20 s)
-python3 grok-bot-export.py --messages-only
+`grok-bot-mcp.py` speaks MCP over stdio. Give it the **Bot** export directory. If you omit the path, it picks the newest `~/Downloads/grok-bot-export-*` folder. It does not open a network connection.
 
-# Regular Grok chats (non-Bot conversations)
-python3 grok-bot-export.py --mode chat
-
-# Both Bots and regular chats
-python3 grok-bot-export.py --mode all
-```
-
-Output goes to `~/Downloads/grok-bot-export-YYYYMMDD/` (or `~/Downloads/grok-chat-export-YYYYMMDD/` for chat mode) by default — pass a directory as the first argument to override. Attachment downloads are idempotent — already-downloaded files are skipped on re-runs.
-
-## Output structure
-
-```
-grok-bot-export-YYYYMMDD/
-  AGENTS.md               ← Agent instructions (read this first)
-  _index.md               all-bot index
-  roster.json             machine-readable bot list
-  01_<bot name>/
-    meta.json             bot metadata (name / agentId / status / lastTurnAt)
-    transcript.json       raw complete data (fallback)
-    messages.jsonl        ★ normalized message stream (one JSON per line)
-    conversation.md       readable, role-labeled dialogue
-    attachments/          multimodal files
-```
-
-`messages.jsonl` uses one uniform schema per line: `seq`, `type`, `role` (`user` / `assistant`), `content`, `timestamp`, `attachment`, `localFile`, `event`, `call`.
-
-## MCP server
-
-`grok-bot-mcp.py` is a stdio MCP server with zero runtime dependencies. Configure it to let an agent query the exported data:
+OpenCode’s current config schema puts servers under `mcp.servers`. In `~/.config/opencode/opencode.json` (or a project `opencode.json`):
 
 ```jsonc
-// ~/.config/opencode/opencode.json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "servers": {
       "grok-bot": {
         "type": "local",
-        "command": ["python3", "/path/to/grok-bot-mcp.py", "/path/to/grok-bot-export-YYYYMMDD"]
+        "command": [
+          "python3",
+          "/absolute/path/grok-bot-mcp.py",
+          "/absolute/path/grok-bot-export-YYYYMMDD"
+        ]
       }
     }
   }
 }
 ```
 
-Tools: `list_bots`, `get_bot` (name + limit), `search` (query + context).
+| Tool | Role |
+| --- | --- |
+| `list_bots` | Names, ids, message counts, last active time |
+| `get_bot` | One bot, by name, id fragment, or folder prefix such as `01`. `limit` defaults to 200 |
+| `search` | Case-sensitive substring on message text, with neighboring lines. `context` defaults to 2 |
 
-## Agent Skills
+Claude Code, Codex, and Cursor launch the same process from their own config files. Paths and examples are in the [guide](docs/guide.md#6-mcp-server-for-opencode).
 
-The repo also ships an [Agent Skills](https://agentskills.io)-compatible skill at `.claude/skills/grok-export/` — an open standard (SKILL.md) supported by **27+ agents**, including Claude Code, Codex, GitHub Copilot, Gemini CLI, OpenCode, and Cursor.
+## Agent skills
 
-To install it, point an agent at the skill directory, or copy `grok-export/` into that agent's own skills folder:
+The skill lives at `.claude/skills/grok-export/SKILL.md`.
 
-- **Claude Code** — reads `.claude/skills/` from the project automatically.
-- **OpenCode** — reads `.claude/skills/` (project compatibility), or add `"skills": ["…/.claude/skills"]` to config.
-- **Codex / Copilot / Gemini CLI / Cursor** — copy `grok-export/` into that agent's skills directory (see its docs).
+- **Claude Code** reads `.claude/skills/` in the project.
+- **OpenCode** reads that folder too, or you can set `"skills": [".claude/skills"]`.
+- **Codex, Copilot, Gemini CLI, Cursor** — copy `grok-export/` into the skills directory that agent documents.
 
-## Supported agents
+The skill name is **grok-export**. Ask in ordinary language to export, or to look something up in the Bot archive.
 
-The exported data + MCP server can be consumed by any agent that supports MCP (or reads files directly):
+## Output layout
 
-**Local agents (stdio MCP works directly):**
+Grok Bots (default, or the Bot half of `--mode all`):
 
-- **Codex** (OpenAI) — add the server to `~/.codex/config.toml` or via `codex mcp add`.
-- **Claude Code** (Anthropic) — `claude mcp add grok-bot -- python3 /path/to/grok-bot-mcp.py /path/to/export`.
-- **OpenCode** — MCP (`grok-bot`) and/or the bundled **skill** (`grok-export`).
-- **Cursor** — add it under Cursor Settings → MCP.
-- **Windsurf**, **Cline**, **Roo Code**, **Kilo Code**, **Zed**, **GitHub Copilot** — any MCP-capable agent, same stdio config.
+```
+~/Downloads/grok-bot-export-YYYYMMDD/
+  AGENTS.md
+  _index.md
+  roster.json
+  01_<bot name>/
+    meta.json
+    transcript.json
+    messages.jsonl
+    conversation.md
+    attachments/
+```
 
-**Cloud agents (need a remote MCP endpoint):**
+`messages.jsonl` is one JSON object per line. Fields you can rely on: `seq`, `type` (`message`, `send-message`, `user-attachment`, `event`, `voice-call`), `role` (`user` or `assistant` when the entry has one), `content`, `timestamp`, `timestampMs`, `attachment`, `localFile`, `event`, `call`.
 
-- **Grok Bot** — runs on xAI's cloud VM and cannot reach your local stdio process directly. It *does* support MCP, but only via a publicly reachable MCP server (HTTP). To let Grok Bot query the data, host `grok-bot-mcp.py` behind an HTTP MCP gateway (or deploy the exported files somewhere Grok Bot can read them).
+Regular chats (`--mode chat`, or the chat half of `--mode all`):
 
-**No MCP?** Just point the agent at the exported folder — read `AGENTS.md` first, then the per-bot `messages.jsonl` / `conversation.md`.
+```
+~/Downloads/grok-chat-export-YYYYMMDD/
+  _index.md
+  conversations.jsonl
+  conversations/
+    0001_<title>.md
+    0001_<title>.json
+```
 
-## How it works
+`conversations.jsonl` fields: `conversationId`, `title`, `role`, `sender`, `content`, `timestamp`, `timestampMs`. Chat export records response text and the raw response JSON. It does not download attachment files.
 
-1. Decrypts `sso` / `sso-rw` cookies from the local Chrome cookie DB (macOS Keychain, Windows DPAPI, or `--cookie`).
-2. Connects to `wss://grok.com/ws/bot/` (JSON-RPC over WebSocket).
-3. `bot.roster` lists all bots; `bot.transcript.offbox` pages through each bot's history.
-4. Attachments download via `bot.command` + `readAttachmentChunk` in 4 MB chunks.
-5. Normalizes everything into the Agent-friendly structure above.
+Pass a directory to override the default. With `--mode all` and a directory, Bots go to that directory and chats go to the same path with `-chat` appended. The process uses umask 077 and then marks directories `0700` and files `0600`. Attachment downloads skip a file that is already present and non-empty. `--workers` defaults to 6 (allowed range 1–32) and applies to Bot attachments. `--messages-only` is an alias of `--skip-attachments` and only affects Bots.
+
+Start with `_index.md`. For a Bot, read `conversation.md` or `messages.jsonl`. `AGENTS.md` in a Bot export is a short map of that folder for an agent.
 
 ## Disclaimer
 
-This is an **unofficial** tool, not affiliated with or endorsed by xAI. It relies on reverse-engineered internal endpoints that may change without notice. Use it only to back up your own account data, and respect grok.com's Terms of Service.
+This project is maintained in the open. It is not published by xAI. grok.com’s interfaces can change without notice. Back up an account you own, and follow grok.com’s terms. Treat the export folder as private. Vulnerability reports stay private and must not include cookies or transcripts; see [SECURITY.md](SECURITY.md).
+
+## Contact & Connect
+
+Questions, corrections, and collaboration are welcome — usage notes, doc fixes, platform help, or a coffee chat.
+
+欢迎 Connect.
+
+- GitHub: [github.com/LofiSu](https://github.com/LofiSu)
+- Email: [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
+
+## Donate
+
+欢迎捐赠 · 欢迎赞助.
+
+If this backup saved you time, any of these is plenty:
+
+- [GitHub Sponsors](https://github.com/sponsors/LofiSu)
+- A note to [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) if you would rather sponsor by email
+
+Only if you want to.
 
 ## License
 

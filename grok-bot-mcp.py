@@ -17,8 +17,8 @@ grok-bot-export.py 导出的 Grok Bot 数据。
     "mcpServers": {
       "grok-bot": {
         "command": "python3",
-        "args": ["/Users/sulin/grok-export-tool/grok-bot-mcp.py",
-                 "/Users/sulin/Downloads/grok-bot-export-full-20261029"]
+        "args": ["~/grok-export-tool/grok-bot-mcp.py",
+                 "~/Downloads/grok-bot-export-YYYYMMDD"]
       }
     }
   }
@@ -40,12 +40,37 @@ def log_stderr(msg):
 
 
 # ---------------- 数据读取 ----------------
+def _inside(root, path):
+    try:
+        root_real = os.path.realpath(root)
+        path_real = os.path.realpath(path)
+        if os.path.commonpath([root_real, path_real]) != root_real:
+            return False
+    except (OSError, ValueError):
+        return False
+    return True
+
+
 def find_bot_folders():
     folders = []
-    for p in sorted(glob.glob(os.path.join(DATA_DIR, "*"))):
-        if os.path.isdir(p) and os.path.exists(os.path.join(p, "meta.json")):
-            folders.append(p)
+    if not DATA_DIR or not os.path.isdir(DATA_DIR):
+        return folders
+    root = os.path.realpath(DATA_DIR)
+    for p in sorted(glob.glob(os.path.join(root, "*"))):
+        if not os.path.isdir(p) or not _inside(root, p):
+            continue
+        meta = os.path.join(p, "meta.json")
+        if os.path.isfile(meta) and not os.path.islink(meta) and _inside(root, meta):
+            folders.append(os.path.realpath(p))
     return folders
+
+
+def clamp_int(value, default, low, high):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(low, min(high, number))
 
 
 def load_bots_overview():
@@ -54,7 +79,10 @@ def load_bots_overview():
         meta_path = os.path.join(folder, "meta.json")
         msgs_path = os.path.join(folder, "messages.jsonl")
         try:
-            meta = json.load(open(meta_path, encoding="utf-8"))
+            with open(meta_path, encoding="utf-8") as handle:
+                meta = json.load(handle)
+            if not isinstance(meta, dict):
+                meta = {}
         except Exception:
             meta = {}
         msg_count = 0
@@ -76,21 +104,27 @@ def load_bots_overview():
 
 
 def find_bot_folder(name_or_index):
+    if not isinstance(name_or_index, str) or not name_or_index.strip():
+        return None, None
+    if "/" in name_or_index or "\\" in name_or_index or ".." in name_or_index:
+        return None, None
+    query = name_or_index.strip()
     bots = load_bots_overview()
-    # 按序号
     for b in bots:
-        if b["folder"].startswith(name_or_index):
-            return b, b["folder"]
-    # 按名字模糊
+        folder = b["folder"]
+        if folder == query or folder.startswith(query + "_") or folder.startswith(query):
+            return b, folder
     for b in bots:
-        if name_or_index in b["name"] or name_or_index in b["agentId"]:
+        if query in b["name"] or query in str(b["agentId"]):
             return b, b["folder"]
     return None, None
 
 
 def load_messages(folder):
-    msgs_path = os.path.join(DATA_DIR, folder, "messages.jsonl")
-    if not os.path.exists(msgs_path):
+    if not DATA_DIR or not _inside(DATA_DIR, os.path.join(DATA_DIR, folder)):
+        return []
+    msgs_path = os.path.join(os.path.realpath(DATA_DIR), folder, "messages.jsonl")
+    if not _inside(DATA_DIR, msgs_path) or os.path.islink(msgs_path) or not os.path.isfile(msgs_path):
         return []
     msgs = []
     with open(msgs_path, encoding="utf-8") as f:
@@ -98,9 +132,11 @@ def load_messages(folder):
             line = line.strip()
             if line:
                 try:
-                    msgs.append(json.loads(line))
+                    item = json.loads(line)
                 except Exception:
-                    pass
+                    continue
+                if isinstance(item, dict):
+                    msgs.append(item)
     return msgs
 
 
@@ -127,11 +163,15 @@ def tool_list_bots():
 
 
 def tool_get_bot(bot, limit=200):
-    meta, folder = find_bot_folder(bot)
+    meta, folder = find_bot_folder(bot if isinstance(bot, str) else "")
     if not folder:
-        return f"未找到名为「{bot}」的 bot。请用 list_bots 查看可用的 bot。"
+        shown = bot if isinstance(bot, str) else ""
+        if len(shown) > 80:
+            shown = shown[:80] + "…"
+        return f"未找到名为「{shown}」的 bot。请用 list_bots 查看可用的 bot。"
     msgs = load_messages(folder)
-    limit = min(int(limit), len(msgs))
+    limit = clamp_int(limit, 200, 0, 10000)
+    limit = min(limit, len(msgs))
     lines = [f"# {meta['name']}", "", f"agentId: {meta['agentId']}", f"总消息数: {len(msgs)}",
              f"最后活跃: {fmt_ts(meta.get('lastTurnAt'))}", "", "---", ""]
     for m in msgs[:limit]:
@@ -143,7 +183,7 @@ def tool_get_bot(bot, limit=200):
             lines.append(f"[{who}] {t}")
             lines.append(m.get("content") or "")
         elif typ == "user-attachment":
-            a = m.get("attachment") or {}
+            a = m.get("attachment") if isinstance(m.get("attachment"), dict) else {}
             lines.append(f"[附件] {t}  {a.get('fileName') or ''}  {m.get('localFile') or ''}")
         elif typ == "event":
             lines.append(f"[事件] {t}  {json.dumps(m.get('event'), ensure_ascii=False)}")
@@ -158,18 +198,27 @@ def tool_get_bot(bot, limit=200):
 
 
 def tool_search(query, context=2):
+    if not isinstance(query, str):
+        query = ""
     query = query.strip()
     if not query:
         return "请输入搜索关键词。"
+    if len(query) > 500:
+        query = query[:500]
+    context = clamp_int(context, 2, 0, 10)
     results = []
-    for folder in find_bot_folders():
+    for folder_path in find_bot_folders():
+        folder = os.path.basename(folder_path)
         msgs = load_messages(folder)
         meta = {}
         try:
-            meta = json.load(open(os.path.join(DATA_DIR, folder, "meta.json"), encoding="utf-8"))
+            with open(os.path.join(folder_path, "meta.json"), encoding="utf-8") as handle:
+                loaded = json.load(handle)
+            if isinstance(loaded, dict):
+                meta = loaded
         except Exception:
             pass
-        hits = [i for i, m in enumerate(msgs) if query in (m.get("content") or "")]
+        hits = [i for i, m in enumerate(msgs) if query in (m.get("content") if isinstance(m.get("content"), str) else "")]
         for i in hits:
             lo = max(0, i - int(context))
             hi = min(len(msgs), i + int(context) + 1)
@@ -185,7 +234,8 @@ def tool_search(query, context=2):
         if len(results) >= 10:
             break
     if not results:
-        return f"未找到包含「{query}」的消息。"
+        shown = query if len(query) <= 80 else query[:80] + "…"
+        return f"未找到包含「{shown}」的消息。"
     return f"找到 {len(results)} 处匹配：\n\n" + "\n\n".join(results)
 
 
@@ -199,7 +249,7 @@ TOOLS = {
         "inputSchema": {
             "type": "object",
             "properties": {
-                "bot": {"type": "string", "description": "bot 名称或序号，如「法律顾问」或「05」"},
+                "bot": {"type": "string", "description": "bot 名称或序号，如「示例助手」或「01」"},
                 "limit": {"type": "integer", "description": "最多返回的消息条数，默认 200"},
             },
             "required": ["bot"],
@@ -229,6 +279,8 @@ def handle_request(msg):
     mid = msg.get("id")
     method = msg.get("method")
     params = msg.get("params") or {}
+    if not isinstance(params, dict):
+        params = {}
 
     if method == "initialize":
         return {"jsonrpc": "2.0", "id": mid, "result": {
@@ -243,6 +295,8 @@ def handle_request(msg):
     if method == "tools/call":
         name = params.get("name")
         args = params.get("arguments") or {}
+        if not isinstance(args, dict):
+            args = {}
         try:
             if name == "list_bots":
                 text = tool_list_bots()
@@ -252,12 +306,14 @@ def handle_request(msg):
                 text = tool_search(args.get("query", ""), args.get("context", 2))
             else:
                 text = f"未知工具: {name}"
+                return {"jsonrpc": "2.0", "id": mid,
+                        "result": {"content": [{"type": "text", "text": text}], "isError": True}}
             return {"jsonrpc": "2.0", "id": mid,
                     "result": {"content": [{"type": "text", "text": text}], "isError": False}}
-        except Exception as e:
+        except Exception:
             return {"jsonrpc": "2.0", "id": mid,
-                    "result": {"content": [{"type": "text", "text": f"错误: {e}"}], "isError": True}}
-    return None
+                    "result": {"content": [{"type": "text", "text": "读取导出数据失败"}], "isError": True}}
+    return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": "Method not found"}}
 
 
 def main():
