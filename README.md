@@ -2,7 +2,7 @@
 
 [English](README.md) · [中文](README.zh-CN.md)
 
-Export your complete **Grok Bot** data from [grok.com](https://grok.com) — every conversation plus all multimodal attachments (images, videos, files) — into an **Agent-friendly** format, with a lightweight **MCP server** and **OpenCode skill** so AI assistants (Codex, Claude Code, OpenCode, …) can query the context directly.
+Export your complete **Grok Bot** data from [grok.com](https://grok.com) — every conversation plus all multimodal attachments (images, videos, files) — into an **Agent-friendly** format, with a lightweight **MCP server** and **Agent Skill** so AI assistants (Codex, Claude Code, OpenCode, …) can query the context directly.
 
 > Fully local. No browser extension, no re-login, no API key, and **no message-quota dependency** — it reads history over grok.com's internal WebSocket API using the cookies from your already-logged-in Chrome.
 
@@ -92,6 +92,16 @@ grok-bot-export-YYYYMMDD/
 ```
 
 Tools: `list_bots`, `get_bot` (name + limit), `search` (query + context).
+
+## Agent Skills
+
+The repo also ships an [Agent Skills](https://agentskills.io)-compatible skill at `.claude/skills/grok-export/` — an open standard (SKILL.md) supported by **27+ agents**, including Claude Code, Codex, GitHub Copilot, Gemini CLI, OpenCode, and Cursor.
+
+To install it, point an agent at the skill directory, or copy `grok-export/` into that agent's own skills folder:
+
+- **Claude Code** — reads `.claude/skills/` from the project automatically.
+- **OpenCode** — reads `.claude/skills/` (project compatibility), or add `"skills": ["…/.claude/skills"]` to config.
+- **Codex / Copilot / Gemini CLI / Cursor** — copy `grok-export/` into that agent's skills directory (see its docs).
 
 ## Supported agents
 

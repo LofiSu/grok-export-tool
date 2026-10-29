@@ -1,38 +1,43 @@
 ---
-name: Grok Export
-description: Export complete Grok Bot data from grok.com (conversations + multimodal attachments) and query it for context. Use when the user wants to back up, export, or reference their Grok Bot data — including Chinese prompts like 导出/备份 Grok Bot 数据, or specific bot names (法律顾问, Coding任务管家, etc.).
+name: grok-export
+description: Export complete Grok Bot and regular Grok chat data from grok.com (conversations + multimodal attachments) into an Agent-friendly format, then query it via an MCP server. Use when the user wants to back up, export, or reference their Grok data — including Chinese prompts like 导出/备份 Grok 数据, or specific bot names (法律顾问, Coding任务管家, etc.).
+license: MIT
+compatibility: Requires Python 3.9+, Google Chrome logged into grok.com, and `pip install -r requirements.txt`. macOS auto-decrypts cookies; Windows/Linux may need `--cookie`.
 ---
 
 # Grok Export
 
-Export all Grok Bot data under a grok.com account (conversations + attachments) and query it for context.
+Export all Grok Bot and regular Grok chat data under a grok.com account, and query it for context.
 
 ## When to use
 
-- User wants to export or back up their Grok Bot data.
-- User wants to reference/recover context from their Grok Bots.
+- User wants to export or back up their Grok Bot / Grok chat data.
+- User wants to reference or recover context from their Grok Bots.
 - User mentions "Grok Bot", "grok bot 数据", "导出", "备份", or a specific bot name.
 
 ## Workflow
 
 ### 1. Export data
 
-The export script lives at the repo root (`../../grok-bot-export.py` relative to this skill):
+Run the export script `grok-bot-export.py` at the repo root:
 
 ```bash
 # Grok Bots (default): full export (conversations + attachments, idempotent)
-python3 ../../grok-bot-export.py
+python3 grok-bot-export.py
 
 # Grok Bots: messages only (~20 s, no attachments)
-python3 ../../grok-bot-export.py --messages-only
+python3 grok-bot-export.py --messages-only
 
 # Regular Grok chats (non-Bot conversations)
-python3 ../../grok-bot-export.py --mode chat
+python3 grok-bot-export.py --mode chat
+
+# Both Bots and regular chats
+python3 grok-bot-export.py --mode all
 ```
 
-Output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/`.
+Output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/` (or `grok-chat-export-YYYYMMDD/` for chat mode).
 
-Requirements: Google Chrome logged into grok.com (macOS / Windows / Linux — see README for auth), `pip install -r requirements.txt`.
+Requirements: Python 3.9+, Google Chrome logged into grok.com, `pip install -r requirements.txt`. On Windows/Linux, if automatic cookie decryption fails, pass `--cookie "sso=...; sso-rw=..."`.
 
 ### 2. Query the exported data
 
