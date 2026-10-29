@@ -13,10 +13,23 @@ Export your complete **Grok Bot** data from [grok.com](https://grok.com) — eve
 - 🧠 Outputs an Agent-friendly structure (normalized JSONL + readable Markdown + raw JSON)
 - 🔌 Lightweight, zero-dependency MCP server (`list_bots` / `get_bot` / `search`)
 
-## Requirements
+## Platform support
 
-- macOS with Google Chrome logged into grok.com
-- Python 3.9+
+| Platform | Cookie auth |
+| --- | --- |
+| **macOS** | Auto-decrypts via the Keychain ("Chrome Safe Storage"). |
+| **Windows** | Auto-decrypts via DPAPI (`pip install pywin32`); if Chrome uses App-Bound Encryption, use `--cookie`. |
+| **Linux** | Best-effort (legacy "peanuts" key / plaintext); otherwise use `--cookie`. |
+
+Universal fallback for any platform:
+
+```bash
+python3 grok-bot-export.py --cookie "sso=...; sso-rw=..."
+```
+
+(Copy the `sso` and `sso-rw` values from DevTools → Application → Cookies → grok.com.)
+
+Requires Python 3.9+.
 
 ## Install
 
@@ -80,9 +93,27 @@ grok-bot-export-YYYYMMDD/
 
 Tools: `list_bots`, `get_bot` (name + limit), `search` (query + context).
 
+## Supported agents
+
+The exported data + MCP server can be consumed by any agent that supports MCP (or reads files directly):
+
+**Local agents (stdio MCP works directly):**
+
+- **Codex** (OpenAI) — add the server to `~/.codex/config.toml` or via `codex mcp add`.
+- **Claude Code** (Anthropic) — `claude mcp add grok-bot -- python3 /path/to/grok-bot-mcp.py /path/to/export`.
+- **OpenCode** — MCP (`grok-bot`) and/or the bundled **skill** (`grok-export`).
+- **Cursor** — add it under Cursor Settings → MCP.
+- **Windsurf**, **Cline**, **Roo Code**, **Kilo Code**, **Zed**, **GitHub Copilot** — any MCP-capable agent, same stdio config.
+
+**Cloud agents (need a remote MCP endpoint):**
+
+- **Grok Bot** — runs on xAI's cloud VM and cannot reach your local stdio process directly. It *does* support MCP, but only via a publicly reachable MCP server (HTTP). To let Grok Bot query the data, host `grok-bot-mcp.py` behind an HTTP MCP gateway (or deploy the exported files somewhere Grok Bot can read them).
+
+**No MCP?** Just point the agent at the exported folder — read `AGENTS.md` first, then the per-bot `messages.jsonl` / `conversation.md`.
+
 ## How it works
 
-1. Decrypts `sso` / `sso-rw` cookies from the local Chrome cookie DB (macOS Keychain "Chrome Safe Storage" key, AES-CBC).
+1. Decrypts `sso` / `sso-rw` cookies from the local Chrome cookie DB (macOS Keychain, Windows DPAPI, or `--cookie`).
 2. Connects to `wss://grok.com/ws/bot/` (JSON-RPC over WebSocket).
 3. `bot.roster` lists all bots; `bot.transcript.offbox` pages through each bot's history.
 4. Attachments download via `bot.command` + `readAttachmentChunk` in 4 MB chunks.

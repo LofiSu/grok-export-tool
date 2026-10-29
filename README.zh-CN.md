@@ -12,10 +12,23 @@
 - 🔌 轻量零依赖 MCP server（`list_bots` / `get_bot` / `search`）
 - ⚡ 附带 OpenCode skill，一键接入导出+查询工作流
 
-## 环境要求
+## 平台支持
 
-- macOS + Google Chrome（已登录 grok.com）
-- Python 3.9+
+| 平台 | Cookie 鉴权 |
+| --- | --- |
+| **macOS** | 通过钥匙串（"Chrome Safe Storage"）自动解密。 |
+| **Windows** | 通过 DPAPI 自动解密（`pip install pywin32`）；若 Chrome 使用 App-Bound 加密，请用 `--cookie`。 |
+| **Linux** | 尽力而为（老版本 "peanuts" 密钥 / 明文）；否则用 `--cookie`。 |
+
+任何平台的通用回退：
+
+```bash
+python3 grok-bot-export.py --cookie "sso=...; sso-rw=..."
+```
+
+（从浏览器 DevTools → Application → Cookies → grok.com 复制 `sso` 和 `sso-rw` 的值。）
+
+需要 Python 3.9+。
 
 ## 安装
 
@@ -79,6 +92,24 @@ grok-bot-export-YYYYMMDD/
 
 工具：`list_bots`、`get_bot`（bot 名 + limit）、`search`（关键词 + 上下文）。
 
+## 支持的 Agent
+
+导出的数据 + MCP server 可被任何支持 MCP 的 Agent（或直接读文件）消费：
+
+**本地 Agent（stdio MCP 直接可用）：**
+
+- **Codex**（OpenAI）—— 加入 `~/.codex/config.toml` 或 `codex mcp add`
+- **Claude Code**（Anthropic）—— `claude mcp add grok-bot -- python3 /path/to/grok-bot-mcp.py /path/to/export`
+- **OpenCode** —— 用 MCP（`grok-bot`）或自带 **skill**（`grok-export`）
+- **Cursor** —— Cursor Settings → MCP 里添加
+- **Windsurf、Cline、Roo Code、Kilo Code、Zed、GitHub Copilot** 等任何支持 MCP 的 Agent，配置方式相同
+
+**云端 Agent（需要远程 MCP 端点）：**
+
+- **Grok Bot** —— 运行在 xAI 的云 VM 上，无法直接访问你本地的 stdio 进程。它本身支持 MCP，但只支持**公开可达的 MCP server（HTTP）**。要让 Grok Bot 查询数据，需要把 `grok-bot-mcp.py` 部署成 HTTP MCP（或把导出的文件放到 Grok Bot 能读取的地方）。
+
+**没有 MCP？** 直接把导出的文件夹交给 Agent——先读 `AGENTS.md`，再读每个 bot 的 `messages.jsonl` / `conversation.md`。
+
 ## OpenCode skill 接入
 
 仓库自带 `.opencode/skills/grok-export/SKILL.md`，OpenCode 会自动发现。也可以手动加入配置：
@@ -93,7 +124,7 @@ grok-bot-export-YYYYMMDD/
 
 ## 工作原理
 
-1. 从本机 Chrome cookie 数据库解密出 `sso`/`sso-rw`（macOS 钥匙串 "Chrome Safe Storage" 密钥，AES-CBC）。
+1. 从本机 Chrome cookie 数据库解密出 `sso`/`sso-rw`（macOS 钥匙串 / Windows DPAPI / `--cookie`）。
 2. 连接 `wss://grok.com/ws/bot/`（JSON-RPC over WebSocket）。
 3. `bot.roster` 列出所有 bot；`bot.transcript.offbox` 分页拉取每个 bot 的历史。
 4. 附件通过 `bot.command` + `readAttachmentChunk` 以 4MB 分块下载。
