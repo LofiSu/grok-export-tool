@@ -1,6 +1,6 @@
 [English](README.md) · [中文](README.zh-CN.md)
 
-> **海报待补。** 审核通过的图片会嵌在这里（`docs/assets/poster.png`）。这一版不放生成的占位海报。
+> **标志和海报待补。** 标志会使用提供的 Grok Bot 头像，原样放在 `docs/assets/grok-bot-logo.png`，旁边保留这句声明：非官方工具，与 xAI 无关，也未获其认可。海报将放在 `docs/assets/poster.png`。这两个文件现在都不在仓库里。
 
 # grok-export-tool
 

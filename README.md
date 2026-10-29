@@ -1,6 +1,6 @@
 [English](README.md) · [中文](README.zh-CN.md)
 
-> **Poster forthcoming.** An approved image will be embedded here (`docs/assets/poster.png`). This release does not ship a generated stand-in.
+> **Logo and poster forthcoming.** The logo will be the supplied Grok Bot avatar, saved unchanged at `docs/assets/grok-bot-logo.png`, with this disclaimer beside it: unofficial tool, not affiliated with or endorsed by xAI. The poster will be `docs/assets/poster.png`. Neither file is in the tree yet.
 
 # grok-export-tool
 

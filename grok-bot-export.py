@@ -50,8 +50,10 @@ CHUNK_SIZE = 4 * 1024 * 1024  # 4MB，服务器单次返回上限
 MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024 * 1024
 MAX_PAGES = 10000
 _SECRET_RE = re.compile(
-    r"(?i)(cookie|authorization|sso(?:-rw)?|token|password)\s*[:=]\s*\S+"
+    r"(?i)\b(cookie|authorization|sso-rw|sso|token|password)\b"
+    r"(?:['\"]|\s)*[:=](?:['\"]|\s)*\S+"
 )
+_JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]+)?")
 
 CHROME_PROFILES = [
     os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/Cookies"),
@@ -65,8 +67,9 @@ def log(msg):
 
 
 def redact(msg):
-    """Drop header-like secrets before anything is printed."""
+    """Drop header-like secrets and JWT-shaped values before anything is printed."""
     text = _SECRET_RE.sub(lambda m: m.group(1) + "=[redacted]", str(msg))
+    text = _JWT_RE.sub("[redacted]", text)
     if len(text) > 300:
         text = text[:300] + "…"
     return text
@@ -170,32 +173,46 @@ def _pkcs7_unpad(plain):
     return plain[:-pad]
 
 
-def decrypt_chrome_cookies(db_path):
-    pw = None
+def _read_cookie_rows(db_path):
+    """Copy the locked Chrome DB, read grok rows, then delete the copy before decrypting."""
     fd, tmp = tempfile.mkstemp(prefix="grok-export-cookies-", suffix=".sqlite")
     os.close(fd)
     os.chmod(tmp, 0o600)
     try:
-        try:
-            pw = subprocess.check_output(
-                ["security", "find-generic-password", "-w", "-s", "Chrome Safe Storage", "-a", "Chrome"],
-                stderr=subprocess.DEVNULL,
-            ).decode().strip()
-        except Exception:
-            pw = None
         with open(db_path, "rb") as src, open(tmp, "wb") as dst:
             shutil.copyfileobj(src, dst)
         os.chmod(tmp, 0o600)
         con = sqlite3.connect(f"file:{tmp}?mode=ro&immutable=1", uri=True)
         try:
-            rows = con.execute(
+            return con.execute(
                 "SELECT host_key, name, encrypted_value FROM cookies "
                 "WHERE host_key LIKE '%grok.com' OR host_key LIKE '%x.ai'"
             ).fetchall()
         finally:
             con.close()
-        if not pw:
-            return {}
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+
+
+def _chrome_safe_storage_password():
+    try:
+        return subprocess.check_output(
+            ["security", "find-generic-password", "-w", "-s", "Chrome Safe Storage", "-a", "Chrome"],
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        return None
+
+
+def decrypt_chrome_cookies(db_path):
+    rows = _read_cookie_rows(db_path)
+    pw = _chrome_safe_storage_password()
+    if not pw:
+        return {}
+    try:
         key = hashlib.pbkdf2_hmac("sha1", pw.encode(), b"saltysalt", 1003, 16)
         iv = b" " * 16
 
@@ -221,10 +238,6 @@ def decrypt_chrome_cookies(db_path):
         return cookies
     finally:
         pw = None
-        try:
-            os.remove(tmp)
-        except OSError:
-            pass
 
 
 def load_cookies():

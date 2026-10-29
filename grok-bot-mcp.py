@@ -165,7 +165,10 @@ def tool_list_bots():
 def tool_get_bot(bot, limit=200):
     meta, folder = find_bot_folder(bot if isinstance(bot, str) else "")
     if not folder:
-        return f"未找到名为「{bot}」的 bot。请用 list_bots 查看可用的 bot。"
+        shown = bot if isinstance(bot, str) else ""
+        if len(shown) > 80:
+            shown = shown[:80] + "…"
+        return f"未找到名为「{shown}」的 bot。请用 list_bots 查看可用的 bot。"
     msgs = load_messages(folder)
     limit = clamp_int(limit, 200, 0, 10000)
     limit = min(limit, len(msgs))
@@ -200,6 +203,8 @@ def tool_search(query, context=2):
     query = query.strip()
     if not query:
         return "请输入搜索关键词。"
+    if len(query) > 500:
+        query = query[:500]
     context = clamp_int(context, 2, 0, 10)
     results = []
     for folder_path in find_bot_folders():
@@ -229,7 +234,8 @@ def tool_search(query, context=2):
         if len(results) >= 10:
             break
     if not results:
-        return f"未找到包含「{query}」的消息。"
+        shown = query if len(query) <= 80 else query[:80] + "…"
+        return f"未找到包含「{shown}」的消息。"
     return f"找到 {len(results)} 处匹配：\n\n" + "\n\n".join(results)
 
 

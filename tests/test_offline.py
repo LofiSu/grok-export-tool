@@ -4,6 +4,7 @@ import base64
 import importlib.util
 import json
 import os
+import sqlite3
 import stat
 import subprocess
 import sys
@@ -70,6 +71,24 @@ class ExportHelpers(unittest.TestCase):
         text = EXP.redact("Cookie: " + secret)
         self.assertNotIn(secret, text)
         self.assertIn("[redacted]", text)
+        fake_jwt = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJleGFtcGxlIn0.not-a-real-signature"
+        quoted = EXP.redact("{'Cookie': '" + fake_jwt + "'}")
+        self.assertNotIn(fake_jwt, quoted)
+        self.assertNotIn("eyJhbGci", quoted)
+
+    def test_cookie_db_copy_is_removed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "Cookies"
+            con = sqlite3.connect(db)
+            con.execute("CREATE TABLE cookies (host_key TEXT, name TEXT, encrypted_value BLOB)")
+            con.execute("INSERT INTO cookies VALUES ('.grok.com', 'sso', ?)", (b"v10not-real",))
+            con.commit()
+            con.close()
+            before = set(Path(tempfile.gettempdir()).glob("grok-export-cookies-*"))
+            result = EXP.decrypt_chrome_cookies(str(db))
+            after = set(Path(tempfile.gettempdir()).glob("grok-export-cookies-*"))
+        self.assertEqual(result, {})
+        self.assertEqual(before, after)
 
     def test_normalize_survives_bad_bodies(self):
         none_body = EXP.normalize_entry({"entryKind": "message", "seq": "nope"}, None)
