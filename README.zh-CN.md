@@ -157,18 +157,15 @@ Grok Bot（默认，或 `--mode all` 的 Bot 那一半）：
 欢迎 Connect。
 
 - GitHub：[github.com/LofiSu](https://github.com/LofiSu)
-- 博客：[lofisu.chat](https://www.lofisu.chat/) · [lofisu.vercel.app](https://lofisu.vercel.app/)
 - 邮箱：[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
-- X：[x.com/QiuMilorw](https://x.com/QiuMilorw)（Rowan）
 
 ## 捐赠
 
-欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee。
+欢迎捐赠 · 欢迎赞助。
 
 如果这次备份省下了时间，下面任意一种都很好：
 
 - [GitHub Sponsors](https://github.com/sponsors/LofiSu)
-- [Buy Me a Coffee](https://www.buymeacoffee.com/LofiSu) — 如果页面 404，改用 Sponsors 或邮件
 - 也可以发邮件到 [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) 说一声赞助
 
 随缘就好。

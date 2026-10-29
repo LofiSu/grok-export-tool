@@ -395,4 +395,4 @@ grok.com can change these interfaces without notice. Pull the latest `main` and 
 
 - [README](../README.md) · [中文说明](../README.zh-CN.md)
 - [Project site](https://lofisu.github.io/grok-export-tool/) once GitHub Pages is publishing from `main`
-- [Contact and donate](../README.md#contact--connect) — GitHub [@LofiSu](https://github.com/LofiSu), [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com), [Rowan on X](https://x.com/QiuMilorw)
+- [Contact and donate](../README.md#contact--connect) — GitHub [@LofiSu](https://github.com/LofiSu), [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)

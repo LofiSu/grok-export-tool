@@ -157,18 +157,15 @@ Questions, corrections, and collaboration are welcome — usage notes, doc fixes
 欢迎 Connect.
 
 - GitHub: [github.com/LofiSu](https://github.com/LofiSu)
-- Blog: [lofisu.chat](https://www.lofisu.chat/) · [lofisu.vercel.app](https://lofisu.vercel.app/)
 - Email: [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
-- X: [x.com/QiuMilorw](https://x.com/QiuMilorw) (Rowan)
 
 ## Donate
 
-欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee.
+欢迎捐赠 · 欢迎赞助.
 
 If this backup saved you time, any of these is plenty:
 
 - [GitHub Sponsors](https://github.com/sponsors/LofiSu)
-- [Buy Me a Coffee](https://www.buymeacoffee.com/LofiSu) — if that page 404s, use Sponsors or email instead
 - A note to [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) if you would rather sponsor by email
 
 Only if you want to.

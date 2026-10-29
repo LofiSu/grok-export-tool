@@ -395,4 +395,4 @@ grok.com 可能不经通知就改掉这些接口。拉取最新的 `main` 再试
 
 - [说明](../README.zh-CN.md) · [English README](../README.md)
 - 在 `main` 开始发布 GitHub Pages 之后：[项目网站](https://lofisu.github.io/grok-export-tool/)
-- [联系与捐赠](../README.zh-CN.md#联系与交流) — GitHub [@LofiSu](https://github.com/LofiSu)、[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)、[X 上的 Rowan](https://x.com/QiuMilorw)
+- [联系与捐赠](../README.zh-CN.md#联系与交流) — GitHub [@LofiSu](https://github.com/LofiSu)、[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)

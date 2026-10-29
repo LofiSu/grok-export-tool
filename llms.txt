@@ -41,8 +41,5 @@ python3 grok-bot-export.py --mode all
 ## Contact
 
 - GitHub: https://github.com/LofiSu
-- Blog: https://www.lofisu.chat/ and https://lofisu.vercel.app/
 - Email: lofisuchat@gmail.com
-- X: https://x.com/QiuMilorw (Rowan)
 - Sponsors: https://github.com/sponsors/LofiSu
-- Buy Me a Coffee: https://www.buymeacoffee.com/LofiSu

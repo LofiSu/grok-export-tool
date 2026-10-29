@@ -52,7 +52,7 @@ Until then the URL 404s. The README is the page that works as soon as the reposi
 - Paste the website URL above.
 - Apply the topics above. Adding `github-pages` is part of this packaging pass; the rest carry forward.
 - Set Pages → Source to **GitHub Actions** once, so the workflow may deploy.
-- GitHub Sponsors for `LofiSu` may still be off. The README and the site footer also link Buy Me a Coffee (`https://www.buymeacoffee.com/LofiSu`) and accept sponsorship by email at lofisuchat@gmail.com. If the coffee page 404s, Sponsors or email is the fallback.
+- GitHub Sponsors for `LofiSu` may still be off. The README and the site footer accept sponsorship by email at lofisuchat@gmail.com.
 - The approved logo is `docs/assets/logo.png` (same bytes as `docs/assets/grok-bot-logo.png`). The poster is `docs/assets/poster.png`.
 
 ## Before making the repository public
