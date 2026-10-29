@@ -27,14 +27,20 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-# Full export (messages + attachments)
+# Grok Bots (default): full export (messages + attachments)
 python3 grok-bot-export.py
 
-# Messages only (fast, ~20 s)
+# Grok Bots: messages only (fast, ~20 s)
 python3 grok-bot-export.py --messages-only
+
+# Regular Grok chats (non-Bot conversations)
+python3 grok-bot-export.py --mode chat
+
+# Both Bots and regular chats
+python3 grok-bot-export.py --mode all
 ```
 
-Output goes to `~/Downloads/grok-bot-export-YYYYMMDD/` by default (pass a directory as the first argument to override). Attachment downloads are idempotent — already-downloaded files are skipped on re-runs.
+Output goes to `~/Downloads/grok-bot-export-YYYYMMDD/` (or `~/Downloads/grok-chat-export-YYYYMMDD/` for chat mode) by default — pass a directory as the first argument to override. Attachment downloads are idempotent — already-downloaded files are skipped on re-runs.
 
 ## Output structure
 
