@@ -1,0 +1,2 @@
+websocket-client>=1.0
+cryptography>=42.0
