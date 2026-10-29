@@ -1,6 +1,6 @@
 # grok-export-tool
 
-把你在 [grok.com](https://grok.com) 上的**全部 Grok Bot 数据**导出——所有对话 + 多模态附件（图片、视频、文件）——整理成**利于 AI Agent 理解**的格式，并提供轻量 **MCP server** 和 **OpenCode skill**，让 Codex / Claude Code / OpenCode 等 Agent 直接查询上下文。
+把你在 [grok.com](https://grok.com) 上的**全部 Grok Bot 数据**导出——所有对话 + 多模态附件（图片、视频、文件）——整理成**利于 AI Agent 理解**的格式，并提供轻量 **MCP server** 和 **Agent Skill**，让 Codex / Claude Code / OpenCode 等 Agent 直接查询上下文。
 
 > 全程本地完成。无需浏览器插件、无需重新登录、无需 API Key，也**不受消息额度限制**——它通过 grok.com 内部 WebSocket 接口读取历史，带的是你本机 Chrome 已登录的 cookie。
 
@@ -10,7 +10,7 @@
 - 🖼️ 并行下载多模态附件（图片/视频/文件），4MB 大分块
 - 🧠 输出 Agent 友好的结构（归一化 `messages.jsonl` + 可读 `conversation.md` + 原始 `transcript.json`）
 - 🔌 轻量零依赖 MCP server（`list_bots` / `get_bot` / `search`）
-- ⚡ 附带 OpenCode skill，一键接入导出+查询工作流
+- ⚡ 附带标准 Agent Skill（SKILL.md，27+ Agent 支持），一键接入导出+查询工作流
 
 ## 平台支持
 
@@ -110,17 +110,17 @@ grok-bot-export-YYYYMMDD/
 
 **没有 MCP？** 直接把导出的文件夹交给 Agent——先读 `AGENTS.md`，再读每个 bot 的 `messages.jsonl` / `conversation.md`。
 
-## OpenCode skill 接入
+## Agent Skills 接入
 
-仓库自带 `.opencode/skills/grok-export/SKILL.md`，OpenCode 会自动发现。也可以手动加入配置：
+仓库自带一个符合 [Agent Skills](https://agentskills.io) 开放标准的 skill：`.claude/skills/grok-export/SKILL.md`。该标准被 **27+ 个 Agent** 支持，包括 Claude Code、Codex、GitHub Copilot、Gemini CLI、OpenCode、Cursor 等。
 
-```jsonc
-{
-  "skills": [".opencode/skills"]
-}
-```
+安装方式：把 Agent 指向该 skill 目录，或把 `grok-export/` 复制到该 Agent 自己的 skills 目录：
 
-之后在 OpenCode 里直接说「帮我导出 Grok Bot 数据」或 `@grok-export`，Agent 会按 skill 的流程执行。
+- **Claude Code** —— 自动读取项目里的 `.claude/skills/`
+- **OpenCode** —— 自动读取 `.claude/skills/`（项目兼容），或在配置里加 `"skills": ["…/.claude/skills"]`
+- **Codex / Copilot / Gemini CLI / Cursor** —— 把 `grok-export/` 复制到对应 Agent 的 skills 目录（见其文档）
+
+配置好后，直接说「帮我导出 Grok Bot 数据」或 `@grok-export`，Agent 会按 skill 流程执行。
 
 ## 工作原理
 
