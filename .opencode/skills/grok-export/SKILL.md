@@ -9,30 +9,33 @@ Export all Grok Bot data under a grok.com account (conversations + attachments) 
 
 ## When to use
 
-- User wants to export or back up their Grok Bot data.
-- User wants to reference/recover context from their Grok Bots.
+- User wants to export or back up their Grok Bot data, or their regular Grok chats.
+- User wants to reference or recover context from their Grok Bots.
 - User mentions "Grok Bot", "grok bot 数据", "导出", "备份", or a specific bot name.
 
 ## Workflow
 
 ### 1. Export data
 
-The export script lives at the repo root (`../../grok-bot-export.py` relative to this skill):
+Run from the repository root (the script is `grok-bot-export.py` there):
 
 ```bash
-# Grok Bots (default): full export (conversations + attachments, idempotent)
-python3 ../../grok-bot-export.py
+# Grok Bots (default): messages and attachments. Re-runs skip non-empty files.
+python3 grok-bot-export.py
 
-# Grok Bots: messages only (~20 s, no attachments)
-python3 ../../grok-bot-export.py --messages-only
+# Grok Bots: text only. Skips attachment downloads.
+python3 grok-bot-export.py --messages-only
 
-# Regular Grok chats (non-Bot conversations)
-python3 ../../grok-bot-export.py --mode chat
+# Regular Grok chats (text and raw JSON, no attachment files)
+python3 grok-bot-export.py --mode chat
+
+# Both. Two directories.
+python3 grok-bot-export.py --mode all
 ```
 
-Output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/`.
+Bot output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/`. Chat output defaults to `~/Downloads/grok-chat-export-YYYYMMDD/`. With `--mode all` and a directory argument, chats go to that path plus `-chat`.
 
-Requirements: macOS + Google Chrome logged into grok.com, `pip install -r requirements.txt`.
+Requirements: macOS + Google Chrome logged into grok.com (profile Default, Profile 1, or Profile 2), `pip install -r requirements.txt`. The first run needs Keychain access to Chrome Safe Storage.
 
 ### 2. Query the exported data
 
@@ -55,5 +58,6 @@ Each line is one JSON message: `seq`, `type` (message / send-message / user-atta
 
 ## Notes
 
-- The tool reads history over grok.com's internal WebSocket API using the cookies of an already-logged-in Chrome. It never sends messages, deletes, or modifies data, and is not affected by message quota.
-- Always prefer `get_bot`/`search` (MCP) over reading raw files, to keep context bounded.
+- Bot history is read over grok.com's bot WebSocket. Regular chats are read over the app-chat HTTP API, which can return HTTP 429 and is retried. The tool does not send new chat messages and does not delete data.
+- MCP queries a Bot export only. Read a chat export from `_index.md` and `conversations/`.
+- Prefer `get_bot` / `search` over pasting whole Bot files into the prompt.

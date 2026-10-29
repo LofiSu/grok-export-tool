@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>grok-export-tool</title>
+  <meta name="description" content="非官方的本地备份：你自己的 Grok Bot 和普通 Grok 对话。macOS、Chrome，以及一个很小的 MCP server。">
+  <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/index.zh-CN.html">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#content">跳到正文</a>
+  <div class="frame">
+    <header class="site-header">
+      <a class="wordmark" href="index.zh-CN.html">grok-export-tool</a>
+      <nav>
+        <a href="guide.zh-CN.html">教程</a>
+        <a href="index.html" lang="en">English</a>
+        <a href="https://github.com/LofiSu/grok-export-tool">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="content">
+      <header class="hero">
+        <p class="kicker">非官方 · 本地 · 你的账号</p>
+        <h1>grok-export-tool</h1>
+        <p class="deck">把 Grok Bot 和普通 Grok 对话留在自己的电脑上，再用一个小 MCP server 查询 Bot 归档。</p>
+        <p class="scope">跑在你的 Mac 上，用的是已经登录 grok.com 的 Chrome。它读取你已经有的历史，不发送新对话。</p>
+        <div class="actions">
+          <a class="primary" href="guide.zh-CN.html">阅读教程</a>
+          <a href="https://github.com/LofiSu/grok-export-tool">查看源码</a>
+        </div>
+        <figure class="poster-slot">
+          <p>
+            <span class="label">海报</span>
+            待补。审核通过的图片会放在 <code>docs/assets/poster.png</code>。
+          </p>
+        </figure>
+      </header>
+
+      <section id="features">
+        <h2>特性</h2>
+        <div class="measure">
+          <ul>
+            <li>当前 Chrome 登录态能看到的全部 Grok Bot：名单、完整记录、附件。附件按 4MB 分块并行下载。</li>
+            <li>普通 Grok 对话在另一个目录：Markdown、原始 JSON，以及一份合并的 JSONL。</li>
+            <li>只想要 Bot 的文字时，可以跳过附件下载。</li>
+            <li>零第三方依赖的 stdio MCP server：<code>list_bots</code>、<code>get_bot</code>、<code>search</code>。它读取的是 Bot 归档。</li>
+            <li>仓库里带有 OpenCode skill，覆盖导出和查询。</li>
+          </ul>
+          <p>目前只有 macOS 和 Google Chrome。会查看的配置档是 Default、Profile 1 和 Profile 2。普通对话导出保存文本和原始 JSON，不下载附件文件。</p>
+        </div>
+      </section>
+
+      <section id="quick-start">
+        <h2>快速开始</h2>
+        <div class="measure">
+          <pre><code>git clone https://github.com/LofiSu/grok-export-tool.git
+cd grok-export-tool
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+
+python3 grok-bot-export.py                  # Bot，含附件
+python3 grok-bot-export.py --messages-only  # Bot，只要文字
+python3 grok-bot-export.py --mode chat      # 普通对话
+python3 grok-bot-export.py --mode all       # 两者都导出</code></pre>
+          <p>第一次运行时，macOS 会询问钥匙串项目 Chrome Safe Storage。选择允许。未指定目录时，文件写到 <code>~/Downloads/</code>。进度日志是中文。<a href="guide.zh-CN.html">教程</a>写了每种导出、如何阅读归档、OpenCode，以及真正会遇到的问题。</p>
+        </div>
+      </section>
+
+      <section id="guide">
+        <h2>教程</h2>
+        <ol class="toc measure">
+          <li><a href="guide.zh-CN.html">中文教程 <span>01</span></a></li>
+          <li><a href="guide.html" lang="en">English guide <span>02</span></a></li>
+          <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.zh-CN.md">Markdown 源文件 <span>03</span></a></li>
+        </ol>
+      </section>
+
+      <section id="mcp">
+        <h2>MCP</h2>
+        <div class="measure">
+          <p><code>grok-bot-mcp.py</code> 通过 stdio 提供 MCP。把 Bot 导出目录传给它。它自己不发起网络连接，也不索引普通对话导出。</p>
+          <p>OpenCode、Claude Code、Codex 和 Cursor 的配置写在<a href="guide.zh-CN.html#mcp">教程</a>里。</p>
+        </div>
+      </section>
+
+      <section id="output">
+        <h2>输出布局</h2>
+        <div class="measure">
+          <p>Bot 在 <code>~/Downloads/grok-bot-export-YYYYMMDD/</code>。每个 Bot 是一个带序号的文件夹，里面有 <code>messages.jsonl</code>、<code>conversation.md</code>、<code>transcript.json</code> 和 <code>attachments/</code>。先看 <code>_index.md</code>。</p>
+          <p>普通对话在 <code>~/Downloads/grok-chat-export-YYYYMMDD/</code>，每个会话一份 Markdown 和一份 JSON。<code>--mode all</code> 同时又指定了目录时，普通对话写到该路径加上 <code>-chat</code>。</p>
+        </div>
+      </section>
+
+      <section id="disclaimer">
+        <h2>免责声明</h2>
+        <div class="measure">
+          <p>非官方工具，与 xAI 无关，也未获其认可。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="contact">
+      <div class="cols">
+        <div>
+          <h2>联系</h2>
+          <p>欢迎来信，也欢迎一起做。</p>
+          <ul>
+            <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
+            <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>捐赠</h2>
+          <p><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a>。若尚未开通，发邮件同样欢迎。</p>
+        </div>
+        <div>
+          <h2>项目</h2>
+          <ul>
+            <li><a href="guide.zh-CN.html">教程</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/LICENSE">MIT 许可证</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">安全政策</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="fine">grok-export-tool。你自己账号的本地备份。海报待补。</p>
+    </footer>
+  </div>
+</body>
+</html>

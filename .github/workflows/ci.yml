@@ -33,7 +33,7 @@ jobs:
         run: python -m compileall -q grok-bot-export.py grok-bot-mcp.py
 
       - name: Syntax-check shell wrappers
-        run: bash -n export.sh export-messages.sh
+        run: bash -n export.sh export-messages.sh export-chat.sh
 
       - name: Export CLI help
         run: python grok-bot-export.py --help

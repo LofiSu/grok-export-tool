@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>使用教程 — grok-export-tool</title>
+  <meta name="description" content="在 Mac 上按步骤备份你自己的 grok.com：Grok Bot 和普通对话，再用 MCP 查询 Bot 归档。">
+  <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/guide.zh-CN.html">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#content">跳到正文</a>
+  <div class="frame">
+    <header class="site-header">
+      <a class="wordmark" href="index.zh-CN.html">grok-export-tool</a>
+      <nav>
+        <a href="index.zh-CN.html">首页</a>
+        <a href="guide.html" lang="en">English</a>
+        <a href="https://github.com/LofiSu/grok-export-tool">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="content">
+      <header class="hero">
+        <p class="kicker">使用教程</p>
+        <h1>备份你自己的账号</h1>
+        <p class="deck">Grok Bot（含附件）和普通 Grok 对话。一条命令，两个目录，在已经登录 Chrome 的那台 Mac 上。</p>
+        <p class="scope">非官方的本地备份。导出脚本的进度日志是中文。Markdown 源文件：<a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.zh-CN.md">docs/guide.zh-CN.md</a>。</p>
+      </header>
+
+      <section>
+        <h2>目录</h2>
+        <ol class="toc measure">
+          <li><a href="#before">开始之前 <span>01</span></a></li>
+          <li><a href="#install">安装 <span>02</span></a></li>
+          <li><a href="#export">导出 <span>03</span></a></li>
+          <li><a href="#where">文件写到哪里 <span>04</span></a></li>
+          <li><a href="#reading">阅读归档 <span>05</span></a></li>
+          <li><a href="#mcp">MCP server <span>06</span></a></li>
+          <li><a href="#troubleshooting">故障排除 <span>07</span></a></li>
+          <li><a href="#safety">安全 <span>08</span></a></li>
+        </ol>
+      </section>
+
+      <section id="before">
+        <h2>1. 开始之前</h2>
+        <div class="measure">
+          <ol>
+            <li>一台 Mac。</li>
+            <li>Google Chrome 已在 <a href="https://grok.com">grok.com</a> 登录你要备份的账号。Safari、Firefox、Arc、Chromium 都不会被读取。</li>
+            <li>这个登录位于 Chrome 配置档 Default、Profile 1 或 Profile 2。其他配置档会被忽略。</li>
+            <li>Python 3.9 或更高版本（<code>python3 --version</code>）。</li>
+            <li>账号是你自己的。</li>
+          </ol>
+          <p><code>--mode bot</code>（默认）导出 Grok Bot：带 id、名单条目和记录的 agent。<code>--mode chat</code> 导出普通 grok.com 会话。<code>--mode all</code> 两者都导出，写到两个目录。</p>
+          <p>先登录再运行。工具复用这个登录态，不会弹出登录窗口。macOS 会询问一次钥匙串权限，见<a href="#troubleshooting">故障排除</a>。</p>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>2. 安装</h2>
+        <div class="measure">
+          <pre><code>git clone https://github.com/LofiSu/grok-export-tool.git
+cd grok-export-tool
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt</code></pre>
+          <p><code>requirements.txt</code> 会安装 <code>websocket-client</code> 和 <code>cryptography</code>。两种模式都会先解密 Chrome 的 cookie 数据库，所以都需要它们。普通对话的请求本身使用 Python 标准库。</p>
+          <p>跑导出的终端要保持虚拟环境处于激活状态。MCP server 没有第三方依赖，它的命令可以用系统自带的 <code>python3</code>。</p>
+          <pre><code>python3 grok-bot-export.py --help</code></pre>
+          <p>输出里应有 <code>--mode {bot,chat,all}</code>、<code>--skip-attachments</code> / <code>--messages-only</code> 和 <code>--workers</code>。</p>
+        </div>
+      </section>
+
+      <section id="export">
+        <h2>3. 导出</h2>
+        <div class="measure">
+          <p>在仓库根目录、虚拟环境已激活时运行。第一次成功读取 cookie 时，macOS 会弹出钥匙串项目 <strong>Chrome Safe Storage</strong>。选择允许。</p>
+
+          <h3>Grok Bot，完整归档</h3>
+          <p>消息、事件、通话记录和附件文件。</p>
+          <pre><code>python3 grok-bot-export.py
+# 或
+./export.sh</code></pre>
+          <p>默认目录：<code>~/Downloads/grok-bot-export-YYYYMMDD/</code>。</p>
+
+          <h3>Grok Bot，只要消息</h3>
+          <p>记录仍然是完整的。附件字节不会下载。记录里如果提到了文件，<code>messages.jsonl</code> 仍会写上 <code>localFile</code>，之后完整再跑一次时知道该放到哪里。</p>
+          <pre><code>python3 grok-bot-export.py --messages-only
+# --skip-attachments 是同一个开关
+# ./export-messages.sh 是它的包装</code></pre>
+
+          <h3>普通 Grok 对话</h3>
+          <pre><code>python3 grok-bot-export.py --mode chat
+# 或
+./export-chat.sh</code></pre>
+          <p>默认目录：<code>~/Downloads/grok-chat-export-YYYYMMDD/</code>。这里写下的是对话文本和原始回复 JSON，不下载附件文件。<code>--messages-only</code> 对这一模式没有作用。</p>
+
+          <h3>两者一起</h3>
+          <pre><code>python3 grok-bot-export.py --mode all</code></pre>
+          <p>不传目录时，Bot 写到 <code>~/Downloads/grok-bot-export-YYYYMMDD/</code>，普通对话写到 <code>~/Downloads/grok-chat-export-YYYYMMDD/</code>。没有 <code>export-all.sh</code>。<code>--messages-only</code> 和 <code>--mode all</code> 一起用时，会跳过 Bot 附件，普通对话仍会写出。</p>
+
+          <h3>指定目录</h3>
+          <pre><code>python3 grok-bot-export.py ~/Backups/grok-bots
+python3 grok-bot-export.py --messages-only ~/Backups/grok-bots
+python3 grok-bot-export.py --mode chat ~/Backups/grok-chats
+python3 grok-bot-export.py --mode all ~/Backups/grok-bots</code></pre>
+          <p>最后一条把 Bot 写到 <code>~/Backups/grok-bots</code>，普通对话写到 <code>~/Backups/grok-bots-chat</code>。只有在 <code>--mode all</code> 并且你传了目录时，才会加上 <code>-chat</code> 后缀。只导普通对话时，用的就是你传入的目录，没有后缀。</p>
+
+          <h3>附件线程数</h3>
+          <p>Bot 附件默认 6 个线程。每个分块 4MB，这是导出器发出的请求大小。</p>
+          <pre><code>python3 grok-bot-export.py --workers 4</code></pre>
+          <p>已经存在且不是空文件的附件会留在原地。空文件会重新下载。想补下失败的附件，再跑一次完整的 Bot 导出即可。每种模式都会走完当前登录态返回的整份名单。没有只选一个 Bot 或一段对话的开关。</p>
+        </div>
+      </section>
+
+      <section id="where">
+        <h2>4. 文件写到哪里</h2>
+        <div class="measure">
+          <p>默认在 <code>~/Downloads/</code> 下，位于 git 仓库之外。导出里可能有完整对话和文件，不应该提交进仓库。</p>
+          <p>cookie 失败时，脚本会在创建目录之前退出。cookie 已经成功、Bot 的 WebSocket 随后失败时，Bot 导出可能已经建好一个空的输出目录。</p>
+        </div>
+      </section>
+
+      <section id="reading">
+        <h2>5. 阅读归档</h2>
+        <div class="measure">
+          <h3>Grok Bot</h3>
+          <pre><code>grok-bot-export-YYYYMMDD/
+  AGENTS.md            给 Agent 的简短地图
+  _index.md            每个 Bot 一条链接
+  roster.json          名单，放在 "agents" 下
+  01_&lt;名称&gt;/
+    meta.json          该 Bot 的名单记录
+    messages.jsonl     每行一个 JSON
+    conversation.md    同一份记录，适合人读
+    transcript.json    解码后的条目
+    attachments/       下载的文件</code></pre>
+          <p>文件夹序号至少两位。名称会做清理：路径里不能用的字符会被替换，并截到 60 个字符。先打开 <code>_index.md</code>，再打开某一份 <code>conversation.md</code>。写脚本或交给 Agent 时，优先用 <code>messages.jsonl</code>。</p>
+          <table>
+            <thead><tr><th>字段</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td><code>seq</code></td><td>记录中的顺序</td></tr>
+              <tr><td><code>type</code></td><td><code>message</code>、<code>send-message</code>、<code>user-attachment</code>、<code>event</code>、<code>voice-call</code>，或其他条目类型</td></tr>
+              <tr><td><code>role</code></td><td>消息条目上为 <code>user</code> 或 <code>assistant</code>。<code>send-message</code> 记为 <code>assistant</code>。<code>user-attachment</code> 记为 <code>user</code></td></tr>
+              <tr><td><code>content</code></td><td>文本。纯用户附件这一条的文本为空</td></tr>
+              <tr><td><code>timestamp</code>、<code>timestampMs</code></td><td>本地时间字符串，以及原始的毫秒时间</td></tr>
+              <tr><td><code>attachment</code></td><td>这条带文件时的文件名和路径</td></tr>
+              <tr><td><code>localFile</code></td><td>相对 Bot 文件夹的路径，例如 <code>attachments/0007_name</code></td></tr>
+              <tr><td><code>event</code>、<code>call</code></td><td>对应条目类型的载荷</td></tr>
+              <tr><td><code>entryId</code>、<code>fromAgent</code>、<code>replyTo</code>、<code>messageType</code>、<code>raw</code></td><td>记录里有这些字段时才会出现</td></tr>
+            </tbody>
+          </table>
+          <p><code>meta.json</code> 是名单对象本身。MCP server 展示的是 <code>name</code>、<code>agentId</code>、<code>status</code> 和 <code>lastTurnAt</code>。</p>
+
+          <h3>普通对话</h3>
+          <pre><code>grok-chat-export-YYYYMMDD/
+  _index.md
+  conversations.jsonl       所有消息，每行一个对象
+  conversations/
+    0001_&lt;标题&gt;.md          可读记录
+    0001_&lt;标题&gt;.json        id、标题、时间、原始回复</code></pre>
+          <p>序号至少四位。标题的清理方式和 Bot 名称相同。接口没给标题时，文件名使用 <code>未命名对话</code>。</p>
+          <table>
+            <thead><tr><th>字段</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td><code>conversationId</code></td><td>grok.com 的会话 id</td></tr>
+              <tr><td><code>title</code></td><td>会话标题</td></tr>
+              <tr><td><code>role</code></td><td>发送者是 <code>human</code> 时为 <code>user</code>，否则为 <code>assistant</code></td></tr>
+              <tr><td><code>sender</code></td><td>接口返回的发送者字符串</td></tr>
+              <tr><td><code>content</code></td><td>消息文本。正文不是字符串时，这里是那段正文的 JSON 文本</td></tr>
+              <tr><td><code>timestamp</code>、<code>timestampMs</code></td><td>本地时间字符串，以及 <code>createTime</code></td></tr>
+            </tbody>
+          </table>
+          <p>每个会话的 JSON 保留原始 <code>messages</code> 数组，以及 <code>createTime</code> 和 <code>modifyTime</code>。普通对话导出里没有 <code>AGENTS.md</code>，MCP server 也不会索引它。</p>
+        </div>
+      </section>
+
+      <section id="mcp">
+        <h2>6. OpenCode 的 MCP server</h2>
+        <div class="measure">
+          <p>服务器文件是 <code>grok-bot-mcp.py</code>。把上一节那个 Bot 文件夹指给它，也就是含有 <code>roster.json</code> 和带序号的 Bot 目录的那一个。</p>
+          <pre><code>python3 /absolute/path/to/grok-export-tool/grok-bot-mcp.py \
+  /absolute/path/to/grok-bot-export-YYYYMMDD</code></pre>
+          <p>它在 stdin/stdout 上使用 JSON-RPC，并一直等待。由 Agent 客户端启动，不用手跑着不放。脚本会展开目录参数里的 <code>~</code>。仍然建议写绝对路径，因为有的客户端不会经过 shell。</p>
+          <p>如果省略目录，服务器按修改时间挑选最新的 <code>~/Downloads/grok-bot-export-*</code>。它不会去看 <code>grok-chat-export-*</code>。请显式传入 Bot 路径。</p>
+
+          <h3>OpenCode</h3>
+          <p>当前 schema（<code>https://opencode.ai/config.json</code>）使用 <code>mcp.servers</code>。编辑 <code>~/.config/opencode/opencode.json</code>，或在项目里新建 <code>opencode.json</code>。</p>
+          <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "grok-bot": {
+        "type": "local",
+        "command": [
+          "python3",
+          "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+          "/absolute/path/to/grok-bot-export-YYYYMMDD"
+        ],
+        "enabled": true
+      }
+    }
+  }
+}</code></pre>
+          <p>两条路径都换成你自己的。MCP 文件不导入 <code>websocket</code> 或 <code>cryptography</code>，系统自带的 <code>python3</code> 就够。若要用虚拟环境里的解释器，把 <code>command</code> 的第一段换成 <code>.venv/bin/python</code>。</p>
+          <p>改完配置后新开一个 OpenCode 会话。让它使用 <code>grok-bot</code> 的工具：先列出 bot，再按你看到的名字打开一个。</p>
+          <table>
+            <thead><tr><th>工具</th><th>参数</th><th>行为</th></tr></thead>
+            <tbody>
+              <tr><td><code>list_bots</code></td><td>无</td><td>名称、<code>agentId</code>、消息数、最后活跃时间。措辞是中文</td></tr>
+              <tr><td><code>get_bot</code></td><td><code>bot</code>（必填），<code>limit</code>（默认 200）</td><td>先匹配文件夹前缀（例如 <code>01</code>），再匹配名称或 <code>agentId</code> 的子串</td></tr>
+              <tr><td><code>search</code></td><td><code>query</code>（必填），<code>context</code>（默认 2）</td><td>在 <code>content</code> 里做区分大小写的子串搜索。最多 10 处，并带上相邻消息</td></tr>
+            </tbody>
+          </table>
+
+          <h3>如果 OpenCode 拒绝 <code>servers</code></h3>
+          <p>有些较旧的版本要求服务器直接写在 <code>mcp</code> 下面。当前 schema 已把这种写法标为弃用。只有在 <code>servers</code> 形式被拒绝时再用：</p>
+          <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "grok-bot": {
+      "type": "local",
+      "command": [
+        "python3",
+        "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+        "/absolute/path/to/grok-bot-export-YYYYMMDD"
+      ]
+    }
+  }
+}</code></pre>
+
+          <h3>OpenCode skill</h3>
+          <p>把本仓库当作项目打开。OpenCode 会加载 <code>.opencode/skills/grok-export/SKILL.md</code>。Skill 名称是 Grok Export。用平常的话说要导出，或要在 Bot 归档里查一件事。</p>
+
+          <h3>其他 Agent</h3>
+          <p>任何 stdio MCP 客户端都可以启动同一个程序。</p>
+          <p>Claude Code 的项目范围是仓库根目录的 <code>.mcp.json</code>（询问时再批准）。用户范围在 <code>~/.claude.json</code>。两种范围里的 <code>mcpServers</code> 对象相同：</p>
+          <pre><code>{
+  "mcpServers": {
+    "grok-bot": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+        "/absolute/path/to/grok-bot-export-YYYYMMDD"
+      ]
+    }
+  }
+}</code></pre>
+          <p>Codex 读取 <code>~/.codex/config.toml</code>，受信任的项目里还可以用 <code>.codex/config.toml</code>：</p>
+          <pre><code>[mcp_servers.grok-bot]
+command = "python3"
+args = [
+  "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+  "/absolute/path/to/grok-bot-export-YYYYMMDD",
+]</code></pre>
+          <p>Cursor 使用 <code>.cursor/mcp.json</code> 或 <code>~/.cursor/mcp.json</code>：</p>
+          <pre><code>{
+  "mcpServers": {
+    "grok-bot": {
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/grok-export-tool/grok-bot-mcp.py",
+        "/absolute/path/to/grok-bot-export-YYYYMMDD"
+      ]
+    }
+  }
+}</code></pre>
+          <p>某个字段被拒绝时，以该产品的 MCP 文档为准。要启动的进程不变。</p>
+          <p><code>list_bots</code> 寻找含有 <code>meta.json</code> 的子文件夹。普通对话目录里没有，返回的中文句子会告诉你没有找到导出。</p>
+        </div>
+      </section>
+
+      <section id="troubleshooting">
+        <h2>7. 故障排除</h2>
+        <div class="measure">
+          <h3>钥匙串提示</h3>
+          <p>导出器会为钥匙串项目 <strong>Chrome Safe Storage</strong>（账户 <strong>Chrome</strong>）调用 <code>security find-generic-password</code>。选择允许；若有“始终允许”，之后再跑就不会反复询问。密码留在本机，用来解密 Chrome 的 cookie 数据库。不要把它贴进 issue、聊天或提交。<a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">SECURITY.md</a> 列出了报告里必须省掉的内容。</p>
+          <p>如果选了不允许，脚本以 <code>未能从 Chrome 解密出 grok.com 登录态</code> 退出。在钥匙串访问里允许你正在使用的终端，然后重新导出。纯 SSH、没有图形界面的会话可能无法回答这个对话框；先在有图形界面的会话里运行一次。</p>
+
+          <h3>Chrome 没有登录</h3>
+          <p>同一行退出信息对应三种原因：</p>
+          <ul>
+            <li>Google Chrome 里没有登录 grok.com。</li>
+            <li>登录在 Default、Profile 1、Profile 2 以外的配置档。请在这三个之一里登录。这个工具不会再扫描其他配置档。</li>
+            <li>钥匙串被拒绝，cookie 无法解密。</li>
+          </ul>
+          <p>工具需要名为 <code>sso</code> 和 <code>sso-rw</code> 的两枚 cookie。登录、确认配置档、允许钥匙串，然后再跑。只有在 cookie 数据库本身复制失败时，才需要完全退出 Chrome。</p>
+
+          <h3>Bot 名单为空</h3>
+          <p>日志 <code>找到 0 个 bot</code> 表示 WebSocket 名单没有返回 agent。目录仍会写出来：<code>AGENTS.md</code>、<code>_index.md</code> 和 <code>roster.json</code>。</p>
+          <p>普通对话只出现在 <code>--mode chat</code> 或 <code>--mode all</code> 的对话目录里。只用 grok.com 主聊天、没有 Bot 的账号，Bot 名单会是空的。另一个配置档里的登录，只要不在 Default、Profile 1 或 Profile 2，就是不可见的。</p>
+
+          <h3>普通对话列表为空</h3>
+          <p><code>找到 0 个普通会话</code> 表示列表是空的，或列表请求失败。往上看有没有 <code>会话列表请求失败（HTTP …)</code>。HTTP 429 和 HTTP 5xx 会重试，最多五次。某一条标题上的 <code>拉取失败</code> 表示该会话只保存了当时已经拿到的消息。同一次运行里的其他会话不受影响。</p>
+
+          <h3>Cookie 数据库报错</h3>
+          <p>如果 Python 在复制 Chrome 的 Cookies 文件时打出 traceback，请完全退出 Chrome（包括后台进程）再导出。工具把数据库复制到临时文件，读完就删掉。它不会打印 cookie 的值。</p>
+
+          <h3>附件缺失</h3>
+          <p><code>--messages-only</code> 是故意不下载。完整运行时，汇总行会写成功了多少个附件任务。缺文件或空文件，再跑一次完整的 Bot 导出。普通对话模式不会写 <code>attachments/</code> 文件夹。</p>
+
+          <h3>MCP 说没有 bot</h3>
+          <p>传入 Bot 目录，不要传仓库根目录，也不要传普通对话目录。文件夹里应有带 <code>meta.json</code> 的子文件夹。改完路径后重启 Agent 客户端。</p>
+
+          <h3>跑到 WebSocket 或列表中途停住</h3>
+          <p>grok.com 可能不经通知就改掉这些接口。拉取最新的 <code>main</code> 再试。仍然失败的话，开一个 issue，附上错误文本和你运行的 commit。不要附上 cookie、钥匙串密码、agent id 和对话正文。安全问题走 SECURITY.md，不要发公开 issue。</p>
+        </div>
+      </section>
+
+      <section id="safety">
+        <h2>8. 安全</h2>
+        <div class="measure">
+          <ul>
+            <li>只备份你自己拥有的账号。</li>
+            <li><code>~/Downloads/grok-bot-export-*</code> 和 <code>~/Downloads/grok-chat-export-*</code> 视为私密。</li>
+            <li>不要提交导出结果、Chrome 的 cookie 数据库或钥匙串材料。</li>
+            <li><code>grok-bot-mcp.py</code> 不发起网络连接。导出器本身会用你现有的登录态连接 grok.com，用来读取历史。</li>
+            <li>这个工具不发送新的聊天消息，也不删除 Bot 或会话。</li>
+            <li>项目与 xAI 无关。请遵守 grok.com 的条款。接口可能会失效。</li>
+          </ul>
+          <p><a href="index.zh-CN.html">首页</a> · <a href="guide.html">English guide</a>。联系方式在页脚，也可以通过 <a href="https://github.com/LofiSu">GitHub</a>、<a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a> 和 <a href="https://x.com/QiuMilorw">X 上的 Rowan</a>。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="contact">
+      <div class="cols">
+        <div>
+          <h2>联系</h2>
+          <p>欢迎来信，也欢迎一起做。</p>
+          <ul>
+            <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
+            <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>捐赠</h2>
+          <p><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a>。若尚未开通，发邮件同样欢迎。</p>
+        </div>
+        <div>
+          <h2>项目</h2>
+          <ul>
+            <li><a href="index.zh-CN.html">首页</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/LICENSE">MIT 许可证</a></li>
+            <li><a href="https://github.com/LofiSu/grok-export-tool/blob/main/SECURITY.md">安全政策</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="fine">grok-export-tool。你自己账号的本地备份。</p>
+    </footer>
+  </div>
+</body>
+</html>
