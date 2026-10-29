@@ -120,7 +120,7 @@ Regular chats (`--mode chat`, or the chat half of `--mode all`):
 
 `conversations.jsonl` fields: `conversationId`, `title`, `role`, `sender`, `content`, `timestamp`, `timestampMs`. Chat export records response text and the raw response JSON. It does not download attachment files.
 
-Pass a directory to override the default. With `--mode all` and a directory, Bots go to that directory and chats go to the same path with `-chat` appended. Attachment downloads skip a file that is already present and non-empty. `--workers` defaults to 6 and applies to Bot attachments. `--messages-only` is an alias of `--skip-attachments` and only affects Bots.
+Pass a directory to override the default. With `--mode all` and a directory, Bots go to that directory and chats go to the same path with `-chat` appended. The process uses umask 077 and then marks directories `0700` and files `0600`. Attachment downloads skip a file that is already present and non-empty. `--workers` defaults to 6 (allowed range 1–32) and applies to Bot attachments. `--messages-only` is an alias of `--skip-attachments` and only affects Bots.
 
 Start with `_index.md`. For a Bot, read `conversation.md` or `messages.jsonl`. `AGENTS.md` in a Bot export is a short map of that folder for an agent.
 

@@ -108,7 +108,7 @@ python3 grok-bot-export.py --mode all ~/Backups/grok-bots</code></pre>
           <p>最后一条把 Bot 写到 <code>~/Backups/grok-bots</code>，普通对话写到 <code>~/Backups/grok-bots-chat</code>。只有在 <code>--mode all</code> 并且你传了目录时，才会加上 <code>-chat</code> 后缀。只导普通对话时，用的就是你传入的目录，没有后缀。</p>
 
           <h3>附件线程数</h3>
-          <p>Bot 附件默认 6 个线程。每个分块 4MB，这是导出器发出的请求大小。</p>
+          <p>Bot 附件默认 6 个线程。<code>--workers</code> 只能是 1 到 32。每个分块 4MB，这是导出器发出的请求大小。</p>
           <pre><code>python3 grok-bot-export.py --workers 4</code></pre>
           <p>已经存在且不是空文件的附件会留在原地。空文件会重新下载。想补下失败的附件，再跑一次完整的 Bot 导出即可。每种模式都会走完当前登录态返回的整份名单。没有只选一个 Bot 或一段对话的开关。</p>
         </div>
@@ -286,7 +286,7 @@ args = [
             <li>登录在 Default、Profile 1、Profile 2 以外的配置档。请在这三个之一里登录。这个工具不会再扫描其他配置档。</li>
             <li>钥匙串被拒绝，cookie 无法解密。</li>
           </ul>
-          <p>工具需要名为 <code>sso</code> 和 <code>sso-rw</code> 的两枚 cookie。登录、确认配置档、允许钥匙串，然后再跑。只有在 cookie 数据库本身复制失败时，才需要完全退出 Chrome。</p>
+          <p>工具需要名为 <code>sso</code> 和 <code>sso-rw</code> 的两枚 cookie。如果这三个配置档的数据库都不存在，日志里还会有 <code>未找到 Chrome 的 Default、Profile 1 或 Profile 2 Cookies 文件</code>。登录、确认配置档、允许钥匙串，然后再跑。只有在 cookie 数据库本身复制失败时，才需要完全退出 Chrome。</p>
 
           <h3>Bot 名单为空</h3>
           <p>日志 <code>找到 0 个 bot</code> 表示 WebSocket 名单没有返回 agent。目录仍会写出来：<code>AGENTS.md</code>、<code>_index.md</code> 和 <code>roster.json</code>。</p>
@@ -299,7 +299,7 @@ args = [
           <p>如果 Python 在复制 Chrome 的 Cookies 文件时打出 traceback，请完全退出 Chrome（包括后台进程）再导出。工具把数据库复制到临时文件，读完就删掉。它不会打印 cookie 的值。</p>
 
           <h3>附件缺失</h3>
-          <p><code>--messages-only</code> 是故意不下载。完整运行时，汇总行会写成功了多少个附件任务。缺文件或空文件，再跑一次完整的 Bot 导出。普通对话模式不会写 <code>attachments/</code> 文件夹。</p>
+          <p><code>--messages-only</code> 是故意不下载。完整运行时，汇总行会写成功了多少个附件任务。只有下载完成的文件会留下。缺文件时再跑一次完整的 Bot 导出。超过 2GB 的附件会跳过。普通对话模式不会写 <code>attachments/</code> 文件夹。</p>
 
           <h3>MCP 说没有 bot</h3>
           <p>传入 Bot 目录，不要传仓库根目录，也不要传普通对话目录。文件夹里应有带 <code>meta.json</code> 的子文件夹。改完路径后重启 Agent 客户端。</p>
@@ -318,6 +318,7 @@ args = [
             <li>不要提交导出结果、Chrome 的 cookie 数据库或钥匙串材料。</li>
             <li><code>grok-bot-mcp.py</code> 不发起网络连接。导出器本身会用你现有的登录态连接 grok.com，用来读取历史。</li>
             <li>这个工具不发送新的聊天消息，也不删除 Bot 或会话。</li>
+            <li>导出器会把 umask 设为 077，并把导出目录标成目录 0700、文件 0600。日志里不会出现 cookie 的值。</li>
             <li>项目与 xAI 无关。请遵守 grok.com 的条款。接口可能会失效。</li>
           </ul>
           <p><a href="index.zh-CN.html">首页</a> · <a href="guide.html">English guide</a>。联系方式在页脚，也可以通过 <a href="https://github.com/LofiSu">GitHub</a>、<a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a> 和 <a href="https://x.com/QiuMilorw">X 上的 Rowan</a>。</p>

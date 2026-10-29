@@ -31,3 +31,10 @@ This project does not assign version numbers yet. Entries are grouped by calenda
 - Added `.github/workflows/pages.yml` to deploy `docs/` to GitHub Pages on push to `main`. The Pages URL is `https://lofisu.github.io/grok-export-tool/` after the repository source is set to GitHub Actions.
 - Pointed `REPO_META.md` at that website and refreshed the description and topics. About text, topics, and the Pages source still need a manual save on GitHub.
 - Updated `llms.txt` for chat mode, the guides, and the site. Smoke CI also syntax-checks `export-chat.sh`.
+
+### Hardening
+
+- Cookie reads copy Chrome’s database to a mode `0600` temp file and always delete it. Cookie values are not printed. Header-like secrets are redacted in logs. Chat HTTP redirects off `grok.com` are refused.
+- Export directories are mode `0700` and files mode `0600`. Attachment bytes are kept only when the download finishes, and a single bad bot or a repeated cursor no longer aborts the whole run.
+- The MCP server ignores symlinks that leave the export directory, clamps tool arguments, and answers unknown JSON-RPC methods. A home-directory path and real bot-name examples were removed from the server and the OpenCode skill.
+- Added offline unit tests under `tests/`.

@@ -25,6 +25,7 @@ import subprocess
 import json
 import base64
 import os
+import re
 import sys
 import time
 import shutil
@@ -46,6 +47,11 @@ GROK_WS = "wss://grok.com/ws/bot/"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 CHUNK_SIZE = 4 * 1024 * 1024  # 4MB，服务器单次返回上限
+MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024 * 1024
+MAX_PAGES = 10000
+_SECRET_RE = re.compile(
+    r"(?i)(cookie|authorization|sso(?:-rw)?|token|password)\s*[:=]\s*\S+"
+)
 
 CHROME_PROFILES = [
     os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/Cookies"),
@@ -55,7 +61,49 @@ CHROME_PROFILES = [
 
 
 def log(msg):
-    print(msg, flush=True)
+    print(redact(msg), flush=True)
+
+
+def redact(msg):
+    """Drop header-like secrets before anything is printed."""
+    text = _SECRET_RE.sub(lambda m: m.group(1) + "=[redacted]", str(msg))
+    if len(text) > 300:
+        text = text[:300] + "…"
+    return text
+
+
+def safe_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def mkdir_private(path):
+    os.makedirs(path, exist_ok=True)
+    if not os.path.islink(path):
+        os.chmod(path, 0o700)
+
+
+def restrict_tree(root):
+    """Owner-only modes. Skip symlinks so a link cannot chmod a file outside the export."""
+    if not root or not os.path.isdir(root) or os.path.islink(root):
+        return
+    os.chmod(root, 0o700)
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        kept = []
+        for name in dirnames:
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path):
+                continue
+            os.chmod(path, 0o700)
+            kept.append(name)
+        dirnames[:] = kept
+        for name in filenames:
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path) or not os.path.isfile(path):
+                continue
+            os.chmod(path, 0o600)
 
 
 def fmt_time(v):
@@ -77,62 +125,123 @@ def fmt_time(v):
 
 
 def sanitize(s):
-    return "".join(c if c not in '\\/:*?"<>|\n\r\t' else "_" for c in str(s)).strip()[:60] or "bot"
+    cleaned = []
+    for c in str(s):
+        if c in '\\/:*?"<>|' or ord(c) < 32:
+            cleaned.append("_")
+        else:
+            cleaned.append(c)
+    name = "".join(cleaned).strip().strip(".")[:60]
+    if not name or name in {".", ".."} or "/" in name or "\\" in name:
+        return "bot"
+    return name
+
+
+def cookie_header(cookies):
+    parts = []
+    for key, value in cookies.items():
+        if not isinstance(key, str) or not isinstance(value, str) or not value:
+            continue
+        if any(c in key or c in value for c in "\r\n\x00;"):
+            continue
+        parts.append(f"{key}={value}")
+    return "; ".join(parts)
+
+
+def path_segment(value):
+    """One URL path segment. Encodes slashes so an id cannot retarget the request."""
+    if value is None:
+        return None
+    text = str(value)
+    if not text or any(ord(c) < 32 for c in text):
+        return None
+    return urllib.parse.quote(text, safe="-._~")
 
 
 # ---------------- Cookie 解密 ----------------
+def _pkcs7_unpad(plain):
+    if not plain:
+        return None
+    pad = plain[-1]
+    if not isinstance(pad, int) or pad < 1 or pad > 16 or len(plain) < pad:
+        return None
+    if plain[-pad:] != bytes([pad]) * pad:
+        return None
+    return plain[:-pad]
+
+
 def decrypt_chrome_cookies(db_path):
+    pw = None
+    fd, tmp = tempfile.mkstemp(prefix="grok-export-cookies-", suffix=".sqlite")
+    os.close(fd)
+    os.chmod(tmp, 0o600)
     try:
-        pw = subprocess.check_output(
-            ["security", "find-generic-password", "-w", "-s", "Chrome Safe Storage", "-a", "Chrome"],
-            stderr=subprocess.DEVNULL,
-        ).decode().strip()
-    except Exception:
-        pw = None
-
-    tmp = os.path.join(tempfile.gettempdir(), f"chrome_cookies_{os.getpid()}.sqlite")
-    shutil.copy2(db_path, tmp)
-    con = sqlite3.connect(f"file:{tmp}?mode=ro&immutable=1", uri=True)
-    rows = con.execute(
-        "SELECT host_key, name, encrypted_value FROM cookies "
-        "WHERE host_key LIKE '%grok.com' OR host_key LIKE '%x.ai'"
-    ).fetchall()
-    con.close()
-    try:
-        os.remove(tmp)
-    except Exception:
-        pass
-
-    if not pw:
-        return {}
-    key = hashlib.pbkdf2_hmac("sha1", pw.encode(), b"saltysalt", 1003, 16)
-    iv = b" " * 16
-
-    def decrypt(blob):
-        if blob[:3] != b"v10":
-            return None
-        data = blob[3:]
-        c = Cipher(algorithms.AES(key), modes.CBC(iv)).decryptor()
-        plain = c.update(data) + c.finalize()
-        pad = plain[-1]
-        return plain[:-pad][32:].decode("utf-8", errors="replace")
-
-    cookies = OrderedDict()
-    for host, name, blob in rows:
         try:
-            cookies[name] = decrypt(blob)
+            pw = subprocess.check_output(
+                ["security", "find-generic-password", "-w", "-s", "Chrome Safe Storage", "-a", "Chrome"],
+                stderr=subprocess.DEVNULL,
+            ).decode().strip()
         except Exception:
+            pw = None
+        with open(db_path, "rb") as src, open(tmp, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+        os.chmod(tmp, 0o600)
+        con = sqlite3.connect(f"file:{tmp}?mode=ro&immutable=1", uri=True)
+        try:
+            rows = con.execute(
+                "SELECT host_key, name, encrypted_value FROM cookies "
+                "WHERE host_key LIKE '%grok.com' OR host_key LIKE '%x.ai'"
+            ).fetchall()
+        finally:
+            con.close()
+        if not pw:
+            return {}
+        key = hashlib.pbkdf2_hmac("sha1", pw.encode(), b"saltysalt", 1003, 16)
+        iv = b" " * 16
+
+        def decrypt(blob):
+            if not blob or blob[:3] != b"v10":
+                return None
+            c = Cipher(algorithms.AES(key), modes.CBC(iv)).decryptor()
+            plain = _pkcs7_unpad(c.update(blob[3:]) + c.finalize())
+            if not plain or len(plain) <= 32:
+                return None
+            return plain[32:].decode("utf-8", errors="replace")
+
+        cookies = OrderedDict()
+        for _host, name, blob in rows:
+            if not isinstance(name, str) or not name:
+                continue
+            try:
+                value = decrypt(blob)
+            except Exception:
+                value = None
+            if isinstance(value, str) and value:
+                cookies[name] = value
+        return cookies
+    finally:
+        pw = None
+        try:
+            os.remove(tmp)
+        except OSError:
             pass
-    return cookies
 
 
 def load_cookies():
+    saw_db = False
     for db in CHROME_PROFILES:
-        if not os.path.exists(db):
+        if not os.path.isfile(db):
             continue
-        cookies = decrypt_chrome_cookies(db)
+        saw_db = True
+        try:
+            cookies = decrypt_chrome_cookies(db)
+        except Exception as exc:
+            log(f"读取 Chrome cookie 数据库失败：{redact(exc)}")
+            continue
         if cookies.get("sso") and cookies.get("sso-rw"):
             return cookies
+    if not saw_db:
+        log("未找到 Chrome 的 Default、Profile 1 或 Profile 2 Cookies 文件")
     log("✗ 未能从 Chrome 解密出 grok.com 登录态")
     sys.exit(1)
 
@@ -140,7 +249,7 @@ def load_cookies():
 # ---------------- WebSocket 客户端 ----------------
 class BotClient:
     def __init__(self, cookies):
-        self.cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
+        self.cookie_header = cookie_header(cookies)
         self.ws = None
         self._id = 0
 
@@ -159,8 +268,12 @@ class BotClient:
         mid = self._id
         self.ws.send(json.dumps({"jsonrpc": "2.0", "id": mid, "method": method, "params": params}))
         while True:
-            msg = json.loads(self.ws.recv())
-            if msg.get("id") == mid:
+            raw = self.ws.recv()
+            try:
+                msg = json.loads(raw)
+            except (json.JSONDecodeError, TypeError, UnicodeError):
+                raise RuntimeError("websocket response was not JSON") from None
+            if isinstance(msg, dict) and msg.get("id") == mid:
                 return msg
 
     def roster(self):
@@ -187,21 +300,60 @@ class BotClient:
             pass
 
 
-def download_attachment(client, agent_id, path):
-    head = client.read_attachment_chunk(agent_id, path, 0, 1)
-    total = int(head.get("totalSize") or 0)
-    mime = head.get("mime") or ""
+def download_attachment(client, agent_id, remote_path, local_path):
+    """Stream to a sibling temp file and keep it only when the byte count matches."""
+    head = client.read_attachment_chunk(agent_id, remote_path, 0, 1)
+    if not isinstance(head, dict):
+        return False
+    try:
+        total = int(head.get("totalSize") or 0)
+    except (TypeError, ValueError):
+        return False
     if total <= 0:
-        return None, None
-    data = bytearray()
+        return False
+    if total > MAX_ATTACHMENT_BYTES:
+        log("   附件超过 2GB，已跳过")
+        return False
+    partial = local_path + ".partial"
+    if os.path.islink(local_path) or os.path.islink(partial):
+        return False
     offset = 0
-    while offset < total:
-        chunk = client.read_attachment_chunk(agent_id, path, offset, CHUNK_SIZE)
-        b64 = chunk.get("bytesBase64") or ""
-        if b64:
-            data.extend(base64.b64decode(b64))
-        offset += CHUNK_SIZE
-    return bytes(data), mime
+    try:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(partial, flags, 0o600)
+        with os.fdopen(fd, "wb") as handle:
+            while offset < total:
+                length = min(CHUNK_SIZE, total - offset)
+                chunk = client.read_attachment_chunk(agent_id, remote_path, offset, length)
+                if not isinstance(chunk, dict):
+                    return False
+                b64 = chunk.get("bytesBase64") or ""
+                if not b64:
+                    return False
+                try:
+                    piece = base64.b64decode(b64)
+                except Exception:
+                    return False
+                if not piece:
+                    return False
+                handle.write(piece)
+                offset += len(piece)
+                if offset > MAX_ATTACHMENT_BYTES:
+                    return False
+        if offset != total:
+            return False
+        os.replace(partial, local_path)
+        if not os.path.islink(local_path):
+            os.chmod(local_path, 0o600)
+        return True
+    finally:
+        if os.path.lexists(partial) and not os.path.islink(partial):
+            try:
+                os.remove(partial)
+            except OSError:
+                pass
 
 
 # ---------------- 消息归一化 ----------------
@@ -213,34 +365,44 @@ def decode_body(entry):
 
 
 def send_message_content(m):
+    if not isinstance(m, dict):
+        return ""
     mtype = m.get("type")
     if mtype == "text":
         return m.get("content") or ""
     if mtype == "widget":
-        w = m.get("widget") or {}
+        w = m.get("widget") if isinstance(m.get("widget"), dict) else {}
         parts = [w.get("prompt") or ""]
-        opts = [o.get("label") for o in (w.get("options") or []) if o.get("label")]
+        options = w.get("options") if isinstance(w.get("options"), list) else []
+        opts = [o.get("label") for o in options if isinstance(o, dict) and o.get("label")]
         if opts:
             parts.append("选项：" + " / ".join(opts))
         return "\n".join(p for p in parts if p)
     if mtype == "cursor-agent":
         return f"[cursor-agent] {m.get('title') or ''}"
     if mtype == "attachment":
-        a = m.get("attachment") or {}
+        a = m.get("attachment") if isinstance(m.get("attachment"), dict) else {}
         return f"[附件] {a.get('file_name') or ''}"
     return json.dumps(m, ensure_ascii=False)
 
 
 def normalize_entry(entry, body):
+    if not isinstance(entry, dict):
+        entry = {}
+    if not isinstance(body, dict):
+        body = None
     ek = entry.get("entryKind")
     ts = body.get("timestampMs") if body else None
     msg = {
-        "seq": int(entry.get("seq") or 0),
+        "seq": safe_int(entry.get("seq"), 0),
         "type": ek,
         "timestamp": fmt_time(ts),
         "timestampMs": ts,
         "entryId": entry.get("entryId"),
     }
+    if body is None:
+        msg["raw"] = None
+        return msg
     if ek == "message":
         role = (body.get("role") or "").lower()
         msg["role"] = role
@@ -253,7 +415,7 @@ def normalize_entry(entry, body):
         if body.get("replyTo"):
             msg["replyTo"] = body["replyTo"]
     elif ek == "send-message":
-        m = body.get("message") or {}
+        m = body.get("message") if isinstance(body.get("message"), dict) else {}
         msg["role"] = "assistant"
         msg["messageType"] = m.get("type")
         msg["content"] = send_message_content(m)
@@ -357,13 +519,13 @@ def collect_attachments(messages, agent_id):
         if m.get("type") == "user-attachment":
             a = m.get("attachment") or {}
             path = a.get("filePath")
-            if path:
-                out.append((agent_id, path, a.get("fileName"), m.get("seq")))
+            if isinstance(path, str) and path:
+                out.append((agent_id, path, a.get("fileName"), m))
         elif m.get("type") == "send-message" and m.get("attachment"):
             a = m.get("attachment") or {}
             url = a.get("url") or ""
-            if url.startswith("file://"):
-                out.append((agent_id, url[len("file://"):], a.get("fileName"), m.get("seq")))
+            if isinstance(url, str) and url.startswith("file://"):
+                out.append((agent_id, url[len("file://"):], a.get("fileName"), m))
     return out
 
 
@@ -373,16 +535,13 @@ _dl_done = {"n": 0, "total": 0}
 
 
 def download_one(args):
-    cookies, agent_id, path, fname, local_path = args
+    cookies, agent_id, path, _fname, local_path = args
     client = BotClient(cookies)
     try:
         client.connect()
-        data, mime = download_attachment(client, agent_id, path)
-        if data:
-            with open(local_path, "wb") as f:
-                f.write(data)
-        return local_path, bool(data)
-    except Exception:
+        return local_path, download_attachment(client, agent_id, path, local_path)
+    except Exception as exc:
+        log(f"   附件下载失败：{redact(exc)}")
         return local_path, False
     finally:
         client.close()
@@ -409,56 +568,101 @@ def download_all_parallel(jobs, cookies, workers):
 
 
 # ---------------- 普通 Grok 对话导出（/rest/app-chat/*） ----------------
-def chat_api(cookie_header, path, method="GET", body=None, tries=5):
+class _SameHostRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse a redirect that would send the session cookie off grok.com."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = urllib.parse.urlparse(newurl)
+        old = urllib.parse.urlparse(req.full_url)
+        if new.scheme != "https" or (new.hostname or "").lower() != (old.hostname or "").lower():
+            raise urllib.error.HTTPError(req.full_url, code, "redirect off grok.com rejected", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_SameHostRedirect)
+
+
+def chat_api(header, path, method="GET", body=None, tries=5):
+    if not path.startswith("/") or path.startswith("//") or "\n" in path or "\r" in path:
+        return 0, "bad path"
     url = "https://grok.com" + path
-    data = json.dumps(body).encode() if body else None
+    data = json.dumps(body).encode() if body is not None else None
     for i in range(tries):
         req = urllib.request.Request(url, data=data, method=method, headers={
-            "Cookie": cookie_header, "User-Agent": UA, "Accept": "*/*",
+            "Cookie": header, "User-Agent": UA, "Accept": "*/*",
             "Content-Type": "application/json",
             "Origin": "https://grok.com", "Referer": "https://grok.com/",
         })
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with _OPENER.open(req, timeout=60) as resp:
                 return resp.status, resp.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
             code = e.code
-            body_text = e.read().decode("utf-8", "replace")
+            try:
+                e.read()
+            except Exception:
+                pass
             if (code == 429 or code >= 500) and i < tries - 1:
                 time.sleep(1 * (2 ** i))
                 continue
-            return code, body_text
+            return code, ""
         except Exception as e:
             if i < tries - 1:
                 time.sleep(1 * (2 ** i))
                 continue
-            return 0, str(e)
+            return 0, redact(e)
     return 0, "重试耗尽"
 
 
-def export_chat(cookies, out_dir):
-    cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
-    os.makedirs(out_dir, exist_ok=True)
-    conv_dir = os.path.join(out_dir, "conversations")
-    os.makedirs(conv_dir, exist_ok=True)
+def _load_json(text):
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return data if isinstance(data, dict) else None
 
+
+def export_chat(cookies, out_dir):
+    os.umask(0o077)
+    header = cookie_header(cookies)
+    out_dir = os.path.expanduser(out_dir)
+    mkdir_private(out_dir)
+    conv_dir = os.path.join(out_dir, "conversations")
+    mkdir_private(conv_dir)
+
+    try:
+        _export_chat_pages(header, out_dir, conv_dir)
+    finally:
+        restrict_tree(out_dir)
+
+
+def _export_chat_pages(header, out_dir, conv_dir):
     log("拉取普通对话会话列表 ...")
     conversations = []
     cursor = None
-    while True:
+    seen_cursors = set()
+    pages = 0
+    while pages < MAX_PAGES:
+        pages += 1
         q = "?pageSize=200&limit=200"
         if cursor:
-            q += "&nextCursor=" + urllib.parse.quote(cursor)
-        st, body = chat_api(cookie_header, "/rest/app-chat/conversations" + q)
+            q += "&nextCursor=" + urllib.parse.quote(str(cursor), safe="")
+        st, body = chat_api(header, "/rest/app-chat/conversations" + q)
         if st != 200:
             log(f"⚠️ 会话列表请求失败（HTTP {st}）")
             break
-        data = json.loads(body)
-        arr = data.get("conversations") or []
-        conversations.extend(arr)
-        nc = data.get("nextCursor")
-        if not arr or not nc:
+        data = _load_json(body)
+        if data is None:
+            log(f"⚠️ 会话列表不是 JSON（HTTP {st}）")
             break
+        arr = data.get("conversations") or []
+        if not isinstance(arr, list):
+            break
+        conversations.extend(item for item in arr if isinstance(item, dict))
+        nc = data.get("nextCursor")
+        if not arr or not nc or nc in seen_cursors:
+            break
+        seen_cursors.add(nc)
         cursor = nc
     log(f"✓ 找到 {len(conversations)} 个普通会话")
 
@@ -466,28 +670,40 @@ def export_chat(cookies, out_dir):
     all_norm = []
 
     for i, conv in enumerate(conversations):
-        cid = conv.get("conversationId")
+        cid = path_segment(conv.get("conversationId"))
         title = conv.get("title") or "未命名对话"
+        if not isinstance(title, str):
+            title = "未命名对话"
         n = f"{i + 1:04d}"
         safe = sanitize(title)
+        label = title.replace("[", "").replace("]", "")
 
         messages = []
-        try:
-            st, body = chat_api(cookie_header,
-                                f"/rest/app-chat/conversations/{cid}/response-node?includeThreads=true")
-            if st == 200:
-                nodes = (json.loads(body).get("responseNodes") or [])
-                ids = [x.get("responseId") for x in nodes if x.get("responseId")]
-                for j in range(0, len(ids), 50):
-                    st2, body2 = chat_api(
-                        cookie_header,
-                        f"/rest/app-chat/conversations/{cid}/load-responses",
-                        "POST", {"responseIds": ids[j:j + 50]})
-                    if st2 == 200:
-                        messages.extend((json.loads(body2).get("responses") or []))
-                    time.sleep(0.05)
-        except Exception as e:
-            log(f"  ⚠️ {title} 拉取失败: {e}")
+        if not cid:
+            log(f"  ⚠️ 跳过缺少会话 id 的记录")
+        else:
+            try:
+                st, body = chat_api(header,
+                                    f"/rest/app-chat/conversations/{cid}/response-node?includeThreads=true")
+                if st == 200:
+                    payload = _load_json(body) or {}
+                    nodes = payload.get("responseNodes") or []
+                    if not isinstance(nodes, list):
+                        nodes = []
+                    ids = [x.get("responseId") for x in nodes if isinstance(x, dict) and x.get("responseId")]
+                    for j in range(0, len(ids), 50):
+                        st2, body2 = chat_api(
+                            header,
+                            f"/rest/app-chat/conversations/{cid}/load-responses",
+                            "POST", {"responseIds": ids[j:j + 50]})
+                        if st2 == 200:
+                            page = _load_json(body2) or {}
+                            got = page.get("responses") or []
+                            if isinstance(got, list):
+                                messages.extend(item for item in got if isinstance(item, dict))
+                        time.sleep(0.05)
+            except Exception as e:
+                log(f"  ⚠️ 会话拉取失败: {redact(e)}")
 
         log(f"[{i + 1}/{len(conversations)}] {title}: {len(messages)} 条消息")
 
@@ -498,7 +714,7 @@ def export_chat(cookies, out_dir):
             raw_msg = m.get("message")
             content = raw_msg if isinstance(raw_msg, str) else json.dumps(raw_msg or "", ensure_ascii=False)
             norm.append({
-                "conversationId": cid,
+                "conversationId": conv.get("conversationId"),
                 "title": title,
                 "role": role,
                 "sender": m.get("sender"),
@@ -508,17 +724,17 @@ def export_chat(cookies, out_dir):
             })
             all_norm.append(norm[-1])
 
-        md = [f"# {title}", "", f"- 会话 ID: `{cid}`", f"- 消息数: {len(messages)}", "", "---", ""]
+        md = [f"# {title}", "", f"- 会话 ID: `{conv.get('conversationId', '')}`", f"- 消息数: {len(messages)}", "", "---", ""]
         for m in norm:
             who = "👤 用户" if m["role"] == "user" else "🤖 Grok"
             md += [f"## {who}", f"*{m['timestamp']}*", "", m["content"], "", "---", ""]
         with open(os.path.join(conv_dir, f"{n}_{safe}.md"), "w", encoding="utf-8") as f:
             f.write("\n".join(md))
         with open(os.path.join(conv_dir, f"{n}_{safe}.json"), "w", encoding="utf-8") as f:
-            json.dump({"conversationId": cid, "title": title,
+            json.dump({"conversationId": conv.get("conversationId"), "title": title,
                        "createTime": conv.get("createTime"), "modifyTime": conv.get("modifyTime"),
                        "messages": messages}, f, ensure_ascii=False, indent=2)
-        index.append(f"- [{n} {title}](conversations/{n}_{safe}.md) —— {len(messages)} 条")
+        index.append(f"- [{n} {label}](conversations/{n}_{safe}.md) —— {len(messages)} 条")
 
     with open(os.path.join(out_dir, "_index.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(index) + "\n")
@@ -530,43 +746,95 @@ def export_chat(cookies, out_dir):
 
 
 # ---------------- 主流程 ----------------
-def export_bots(cookies, out_dir, skip_attachments=False, workers=6):
-    out_dir = os.path.expanduser(out_dir)
-    os.makedirs(out_dir, exist_ok=True)
+def _transcript_entries(client, agent_id):
+    entries = []
+    cursor = None
+    seen = set()
+    for _ in range(MAX_PAGES):
+        result = client.transcript(agent_id, cursor)
+        if not isinstance(result, dict):
+            break
+        batch = result.get("entries") or []
+        if not isinstance(batch, list) or not batch:
+            break
+        entries.extend(item for item in batch if isinstance(item, dict))
+        nc = result.get("nextCursor")
+        if not nc or nc in seen:
+            break
+        seen.add(nc)
+        cursor = nc
+    entries.sort(key=lambda e: safe_int(e.get("seq"), 0))
+    return entries
 
+
+def _reconnect(cookies, client):
+    client.close()
+    fresh = BotClient(cookies)
+    try:
+        fresh.connect()
+    except Exception:
+        fresh.close()
+        raise
+    return fresh
+
+
+def export_bots(cookies, out_dir, skip_attachments=False, workers=6):
+    os.umask(0o077)
+    out_dir = os.path.expanduser(out_dir)
+    mkdir_private(out_dir)
+    try:
+        _export_bots_inner(cookies, out_dir, skip_attachments, workers)
+    finally:
+        restrict_tree(out_dir)
+
+
+def _export_bots_inner(cookies, out_dir, skip_attachments, workers):
     log("=" * 60)
     log("Grok Bot 全量导出")
     log("=" * 60)
 
     client = BotClient(cookies)
-    client.connect()
-    agents = client.roster()
+    try:
+        client.connect()
+    except Exception as exc:
+        log(f"连接 grok.com 失败：{redact(exc)}")
+        client.close()
+        return
+    try:
+        roster = client.roster()
+    except Exception as exc:
+        log(f"读取 bot 名单失败：{redact(exc)}")
+        client.close()
+        return
+    agents = roster if isinstance(roster, list) else []
+    agents = [a for a in agents if isinstance(a, dict)]
     log(f"✓ 找到 {len(agents)} 个 bot")
 
     index = [f"# Grok Bot 导出索引\n\n共 {len(agents)} 个 bot\n"]
-    all_jobs = []  # 待下载附件
+    all_jobs = []
 
-    # ---- 阶段 1：拉消息（秒出）----
     for i, agent in enumerate(agents):
         aid = agent.get("agentId")
         name = agent.get("name") or "未命名 bot"
+        if not isinstance(name, str):
+            name = "未命名 bot"
         n = f"{i + 1:02d}"
         safe = sanitize(name)
+        label = name.replace("[", "").replace("]", "")
         bot_dir = os.path.join(out_dir, f"{n}_{safe}")
         att_dir = os.path.join(bot_dir, "attachments")
-        os.makedirs(att_dir, exist_ok=True)
-
-        entries = []
-        cursor = None
-        while True:
-            result = client.transcript(aid, cursor)
-            batch = result.get("entries", [])
-            entries.extend(batch)
-            nc = result.get("nextCursor")
-            if not batch or not nc:
+        mkdir_private(bot_dir)
+        mkdir_private(att_dir)
+        try:
+            entries = _transcript_entries(client, aid)
+        except Exception as exc:
+            log(f"[{i + 1}/{len(agents)}] {name}: 跳过（{redact(exc)}）")
+            try:
+                client = _reconnect(cookies, client)
+            except Exception as reconn:
+                log(f"重新连接失败：{redact(reconn)}")
                 break
-            cursor = nc
-        entries.sort(key=lambda e: int(e.get("seq") or 0))
+            continue
         log(f"[{i + 1}/{len(agents)}] {name}: {len(entries)} 条消息 ✓")
 
         decoded = []
@@ -577,20 +845,24 @@ def export_bots(cookies, out_dir, skip_attachments=False, workers=6):
                             "entryId": e.get("entryId"), "body": body})
             messages.append(normalize_entry(e, body))
 
-        # 预设附件本地路径 + 收集下载任务
         atts = collect_attachments(messages, aid)
-        for (a, path, fname, seq) in atts:
-            local_name = f"{seq:04d}_{sanitize(fname or f'file_{seq}')}"
+        used_names = set()
+        for (a, path, fname, msg) in atts:
+            base = f"{safe_int(msg.get('seq')):04d}_{sanitize(fname or 'file')}"
+            local_name = base
+            suffix = 2
+            while local_name in used_names:
+                local_name = f"{base}_{suffix}"
+                suffix += 1
+            used_names.add(local_name)
             local_path = os.path.join(att_dir, local_name)
-            for m in messages:
-                if m.get("seq") == seq and m.get("type") in ("user-attachment", "send-message"):
-                    m["localFile"] = f"attachments/{local_name}"
-            if not (os.path.exists(local_path) and os.path.getsize(local_path) > 0):
+            msg["localFile"] = f"attachments/{local_name}"
+            if not (os.path.isfile(local_path) and not os.path.islink(local_path)
+                    and os.path.getsize(local_path) > 0):
                 all_jobs.append((a, path, fname, local_path))
         if atts:
             log(f"   📎 {len(atts)} 个附件")
 
-        # 写文件（消息已秒出）
         with open(os.path.join(bot_dir, "meta.json"), "w", encoding="utf-8") as f:
             json.dump(agent, f, ensure_ascii=False, indent=2)
         with open(os.path.join(bot_dir, "transcript.json"), "w", encoding="utf-8") as f:
@@ -601,11 +873,10 @@ def export_bots(cookies, out_dir, skip_attachments=False, workers=6):
         with open(os.path.join(bot_dir, "conversation.md"), "w", encoding="utf-8") as f:
             f.write(render_conversation(messages, agent))
 
-        index.append(f"- [{n} {name}]({n}_{safe}/conversation.md) —— {len(entries)} 条")
+        index.append(f"- [{n} {label}]({n}_{safe}/conversation.md) —— {len(entries)} 条")
 
     client.close()
 
-    # ---- 阶段 2：并行下载附件 ----
     if all_jobs and not skip_attachments:
         log(f"\n📥 开始并行下载 {len(all_jobs)} 个附件（{workers} 线程，4MB 分块）...")
         t0 = time.time()
@@ -614,12 +885,14 @@ def export_bots(cookies, out_dir, skip_attachments=False, workers=6):
     elif all_jobs:
         log(f"\n已跳过附件下载（--skip-attachments），{len(all_jobs)} 个附件未下载")
 
+    names = ", ".join(str(a.get("name") or "") for a in agents)
+    agents_md = AGENTS_MD.replace("{count}", str(len(agents))).replace("{bots}", names)
     with open(os.path.join(out_dir, "roster.json"), "w", encoding="utf-8") as f:
         json.dump({"agents": agents}, f, ensure_ascii=False, indent=2)
     with open(os.path.join(out_dir, "_index.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(index) + "\n")
     with open(os.path.join(out_dir, "AGENTS.md"), "w", encoding="utf-8") as f:
-        f.write(AGENTS_MD.format(count=len(agents), bots=", ".join(a.get("name", "") for a in agents)))
+        f.write(agents_md)
 
     log("\n" + "=" * 60)
     log(f"✅ 完成！共 {len(agents)} 个 bot → {out_dir}")
@@ -663,8 +936,11 @@ def main():
                     help="bot=Grok Bot，chat=普通对话，all=两者都导（默认 bot）")
     ap.add_argument("--skip-attachments", "--messages-only", action="store_true",
                     dest="skip_attachments", help="只导出对话消息（秒出），不下载附件")
-    ap.add_argument("--workers", type=int, default=6, help="附件并行下载线程数")
+    ap.add_argument("--workers", type=int, default=6, help="附件并行下载线程数（1–32）")
     args = ap.parse_args()
+    if args.workers < 1 or args.workers > 32:
+        ap.error("--workers must be between 1 and 32")
+    os.umask(0o077)
 
     cookies = load_cookies()
     stamp = time.strftime("%Y%m%d")

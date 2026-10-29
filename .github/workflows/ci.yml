@@ -38,6 +38,9 @@ jobs:
       - name: Export CLI help
         run: python grok-bot-export.py --help
 
+      - name: Offline unit tests
+        run: python -m unittest discover -s tests -v
+
       - name: MCP server stdio dry-run
         run: |
           set -euo pipefail

@@ -108,7 +108,7 @@ python3 grok-bot-export.py --mode all ~/Backups/grok-bots</code></pre>
           <p>The last command writes Bots to <code>~/Backups/grok-bots</code> and chats to <code>~/Backups/grok-bots-chat</code>. The <code>-chat</code> suffix is added only when <code>--mode all</code> and a directory are both set. A chat-only run uses the directory you passed, with no suffix.</p>
 
           <h3>Attachment workers</h3>
-          <p>Bot downloads use 6 threads unless you change it. Each chunk is 4&nbsp;MB, which is the request size the exporter sends.</p>
+          <p>Bot downloads use 6 threads unless you change it. <code>--workers</code> must be from 1 to 32. Each chunk is 4&nbsp;MB, which is the request size the exporter sends.</p>
           <pre><code>python3 grok-bot-export.py --workers 4</code></pre>
           <p>A file that already exists and is non-empty is left in place. An empty file is downloaded again. Re-running a full Bot export retries failures.</p>
           <p>Each mode walks the whole list the session returns. There is no flag for a single Bot or a single chat. Afterward, open one folder, or ask the MCP server for one Bot by name.</p>
@@ -287,7 +287,7 @@ args = [
             <li>The login is in a profile other than Default, Profile 1, or Profile 2. Sign in inside one of those three. This tool does not scan any further profile.</li>
             <li>Keychain access was denied, so the cookies could not be decrypted.</li>
           </ul>
-          <p>The tool needs both cookie names <code>sso</code> and <code>sso-rw</code>. Log in, confirm the profile, allow Keychain, and run again. Quitting Chrome is necessary only when the cookie database itself cannot be copied.</p>
+          <p>The tool needs both cookie names <code>sso</code> and <code>sso-rw</code>. If none of the three profile databases exist, the log also includes <code>未找到 Chrome 的 Default、Profile 1 或 Profile 2 Cookies 文件</code>. Log in, confirm the profile, allow Keychain, and run again. Quitting Chrome is necessary only when the cookie database itself cannot be copied.</p>
 
           <h3>Empty Bot roster</h3>
           <p>The log line <code>找到 0 个 bot</code> means the WebSocket roster returned no agents. The directory is still written: <code>AGENTS.md</code>, <code>_index.md</code>, and <code>roster.json</code>.</p>
@@ -300,7 +300,7 @@ args = [
           <p>If Python prints a traceback while copying Chrome’s Cookies file, quit Chrome completely, including background processes, and run the export again. The tool copies the database to a temp file, reads it, and deletes the copy. It does not print cookie values.</p>
 
           <h3>Attachments missing</h3>
-          <p><code>--messages-only</code> skips downloads on purpose. On a full run, the summary line reports how many attachment jobs succeeded. Re-run the full Bot export to retry files that are missing or empty. Chat mode never writes an <code>attachments/</code> folder.</p>
+          <p><code>--messages-only</code> skips downloads on purpose. On a full run, the summary line reports how many attachment jobs succeeded. A file is kept only when its download finishes. Re-run the full Bot export to retry files that are missing. Files larger than 2&nbsp;GB are skipped. Chat mode never writes an <code>attachments/</code> folder.</p>
 
           <h3>MCP says there are no bots</h3>
           <p>Pass the Bot directory, not the repository root and not the chat directory. The folder should contain subfolders with <code>meta.json</code>. Restart the agent client after changing the path.</p>
@@ -319,6 +319,7 @@ args = [
             <li>Do not commit exports, Chrome’s cookie database, or Keychain material.</li>
             <li><code>grok-bot-mcp.py</code> does not open a network connection. The exporter does open connections to grok.com, using your existing session, to read history.</li>
             <li>The tool does not send a new chat message and does not delete bots or conversations.</li>
+            <li>The exporter sets umask 077 and then marks the export tree so directories are mode 0700 and files are mode 0600. Logs do not include cookie values.</li>
             <li>The project is not affiliated with xAI. Follow grok.com’s terms. Interfaces can break.</li>
           </ul>
           <p><a href="index.html">Home</a> · <a href="guide.zh-CN.html">中文教程</a> · <a href="index.html#contact">Contact and donate</a> are in the page footer, and on the <a href="https://github.com/LofiSu">GitHub profile</a>, at <a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a>, and <a href="https://x.com/QiuMilorw">Rowan on X</a>.</p>

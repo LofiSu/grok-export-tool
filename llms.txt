@@ -19,7 +19,7 @@ This repository provides:
 
 Bot default folder: `~/Downloads/grok-bot-export-YYYYMMDD/`.
 
-Chrome profiles scanned: Default, Profile 1, Profile 2. The first run needs macOS Keychain access to **Chrome Safe Storage**. Logs are Chinese.
+Chrome profiles scanned: Default, Profile 1, Profile 2. The first run needs macOS Keychain access to **Chrome Safe Storage**. Logs are Chinese and do not print cookie values. Export directories are mode 0700 and files mode 0600.
 
 ## Documentation
 

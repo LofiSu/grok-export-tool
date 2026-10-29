@@ -120,7 +120,7 @@ Grok Bot（默认，或 `--mode all` 的 Bot 那一半）：
 
 `conversations.jsonl` 的字段：`conversationId`、`title`、`role`、`sender`、`content`、`timestamp`、`timestampMs`。普通对话导出保存回复文本和原始 JSON，不下载附件文件。
 
-把目录作为第一个参数可以改掉默认位置。`--mode all` 同时又给了目录时，Bot 写到该目录，普通对话写到同一路径后面加上 `-chat`。附件若已存在且不是空文件，会跳过。`--workers` 默认 6，只作用于 Bot 附件。`--messages-only` 与 `--skip-attachments` 是同一个开关，只影响 Bot。
+把目录作为第一个参数可以改掉默认位置。`--mode all` 同时又给了目录时，Bot 写到该目录，普通对话写到同一路径后面加上 `-chat`。进程会把 umask 设为 077，然后把目录标成 `0700`、文件标成 `0600`。附件若已存在且不是空文件，会跳过。`--workers` 默认 6（允许 1–32），只作用于 Bot 附件。`--messages-only` 与 `--skip-attachments` 是同一个开关，只影响 Bot。
 
 先看 `_index.md`。读某个 Bot 时打开 `conversation.md` 或 `messages.jsonl`。Bot 导出里的 `AGENTS.md` 是给 Agent 的简短目录说明。
 

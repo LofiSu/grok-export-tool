@@ -111,7 +111,7 @@ The last command writes Bots to `~/Backups/grok-bots` and chats to `~/Backups/gr
 
 ### Attachment workers
 
-Bot downloads use 6 threads unless you change it. Each chunk is 4 MB, which is the request size the exporter sends.
+Bot downloads use 6 threads unless you change it. `--workers` must be from 1 to 32. Each chunk is 4 MB, which is the request size the exporter sends.
 
 ```bash
 python3 grok-bot-export.py --workers 4
@@ -346,7 +346,7 @@ The same exit line covers three different causes:
 - The login is in a profile other than Default, Profile 1, or Profile 2. Sign in inside one of those three. This tool does not scan any further profile.
 - Keychain access was denied, so the cookies could not be decrypted.
 
-The tool needs both cookie names `sso` and `sso-rw`. A page that looks logged in but is missing either cookie fails the same way. Quit Chrome only if you need to; being logged in matters more than Chrome being closed. Log in, confirm the profile, allow Keychain, and run again.
+The tool needs both cookie names `sso` and `sso-rw`. A page that looks logged in but is missing either cookie fails the same way. If none of the three profile databases exist, the log also includes `未找到 Chrome 的 Default、Profile 1 或 Profile 2 Cookies 文件`. Quit Chrome only if you need to; being logged in matters more than Chrome being closed. Log in, confirm the profile, allow Keychain, and run again.
 
 ### Empty Bot roster
 
@@ -368,7 +368,7 @@ If Python prints a traceback while copying Chrome’s `Cookies` file, quit Chrom
 
 ### Attachments missing
 
-`--messages-only` skips downloads on purpose. On a full run, the summary line reports how many attachment jobs succeeded. Re-run the full Bot export to retry files that are missing or empty. Files that are already non-empty stay as they are.
+`--messages-only` skips downloads on purpose. On a full run, the summary line reports how many attachment jobs succeeded. A file is kept only when its download finishes; an interrupted file is not treated as done. Re-run the full Bot export to retry files that are missing. Files that are already non-empty stay as they are. Files larger than 2 GB are skipped.
 
 Chat mode never writes an `attachments/` folder.
 
@@ -388,6 +388,7 @@ grok.com can change these interfaces without notice. Pull the latest `main` and 
 - `grok-bot-mcp.py` does not open a network connection. Give it only an export you trust. The exporter does open connections to grok.com, using your existing session, to read history.
 - The tool does not send a new chat message and does not delete bots or conversations.
 - Cookie decryption exists so an existing Chrome login can be reused. That material stays on the machine.
+- The exporter sets umask 077 and then marks the export tree so directories are mode 0700 and files are mode 0600. Logs do not include cookie values.
 - The project is not affiliated with xAI. Follow grok.com’s terms. Interfaces can break.
 
 ## 9. Where to go next

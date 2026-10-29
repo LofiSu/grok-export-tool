@@ -1,6 +1,6 @@
 ---
 name: Grok Export
-description: Export complete Grok Bot data from grok.com (conversations + multimodal attachments) and query it for context. Use when the user wants to back up, export, or reference their Grok Bot data — including Chinese prompts like 导出/备份 Grok Bot 数据, or specific bot names (法律顾问, Coding任务管家, etc.).
+description: Export complete Grok Bot data from grok.com (conversations + multimodal attachments) and query it for context. Use when the user wants to back up, export, or reference their Grok Bot data — including Chinese prompts like 导出/备份 Grok Bot 数据, or a fictional bot name such as Example Bot.
 ---
 
 # Grok Export

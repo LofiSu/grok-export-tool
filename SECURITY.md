@@ -46,7 +46,9 @@ Out of scope:
 ## Safe use
 
 - Run the exporter only on a machine where you are already logged into your own grok.com account.
-- Treat `~/Downloads/grok-bot-export-*` as private. An export can contain full transcripts and attachments.
+- Treat `~/Downloads/grok-bot-export-*` and `~/Downloads/grok-chat-export-*` as private. An export can contain full transcripts and attachments.
+- The exporter sets umask `077` and then marks the export tree owner-only: directories `0700`, files `0600`.
 - Do not commit export output, cookie databases, or Keychain material. Export folders are written outside the repository by default.
-- `grok-bot-mcp.py` does not open a network connection. Pass it only an export directory you trust.
-- Cookie decryption exists so the tool can reuse an existing local Chrome login. Keep that material on the machine. It does not belong in logs, issues, or git history.
+- `grok-bot-mcp.py` does not open a network connection. It reads only files whose real path stays inside the export directory you pass. Pass it only an export you trust.
+- Cookie decryption reuses the local Chrome login. The Keychain password stays in memory for that read and is not written to the export or to logs. The cookie database is copied to a mode `0600` temp file and deleted when the read finishes, including when the read fails. Logs redact cookie-like header values and do not print cookie values.
+- Chat requests go to `https://grok.com` only. A redirect to any other host is refused, so the session cookie is not forwarded.
