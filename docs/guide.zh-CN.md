@@ -396,5 +396,5 @@ grok.com 可能不经通知就改掉这些接口。拉取最新的 `main` 再试
 - [说明](../README.zh-CN.md) · [English README](../README.md)
 - [项目网站](https://lofisu.github.io/grok-export-tool/) · [中文首页](https://lofisu.github.io/grok-export-tool/index.zh-CN.html)
 - [网站上的中文教程](https://lofisu.github.io/grok-export-tool/guide.zh-CN.html) · [English guide](https://lofisu.github.io/grok-export-tool/guide.html)
-- [联系](../README.zh-CN.md#联系) — [GitHub](https://github.com/LofiSu)、[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
+- [联系](../README.zh-CN.md#联系) — [GitHub](https://github.com/LofiSu)、[X / @su_lofi](https://x.com/su_lofi)、[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 - [捐赠](../README.zh-CN.md#捐赠) — [GitHub Sponsors](https://github.com/sponsors/LofiSu)

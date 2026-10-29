@@ -155,6 +155,7 @@ This project is maintained by the community, in the open. It is not published by
 Questions and collaboration are welcome: a usage note, a doc fix, help on a platform, or just a hello.
 
 - GitHub: [github.com/LofiSu](https://github.com/LofiSu)
+- X: [X / @su_lofi](https://x.com/su_lofi)
 - Email: [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 
 ## Donate

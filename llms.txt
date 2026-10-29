@@ -41,5 +41,6 @@ python3 grok-bot-export.py --mode all
 ## Contact
 
 - GitHub: https://github.com/LofiSu
+- X: https://x.com/su_lofi (@su_lofi)
 - Email: lofisuchat@gmail.com
 - Sponsors: https://github.com/sponsors/LofiSu
