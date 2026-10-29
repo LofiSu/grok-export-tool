@@ -26,14 +26,20 @@ pip install -r requirements.txt
 ## 用法
 
 ```bash
-# 完整导出（消息 + 附件）
+# Grok Bot（默认）：完整导出（消息 + 附件）
 python3 grok-bot-export.py
 
-# 仅消息（约 20 秒）
+# Grok Bot：仅消息（约 20 秒）
 python3 grok-bot-export.py --messages-only
+
+# 普通 Grok 对话（非 Bot 的聊天）
+python3 grok-bot-export.py --mode chat
+
+# Bot 和普通对话都导出
+python3 grok-bot-export.py --mode all
 ```
 
-默认输出到 `~/Downloads/grok-bot-export-YYYYMMDD/`（可在命令后加自定义目录）。附件下载是幂等的——已下载的文件在重跑时会跳过。
+默认输出到 `~/Downloads/grok-bot-export-YYYYMMDD/`（chat 模式为 `~/Downloads/grok-chat-export-YYYYMMDD/`），可在命令后加自定义目录。附件下载是幂等的——已下载的文件在重跑时会跳过。
 
 ## 输出结构
 

@@ -20,11 +20,14 @@ Export all Grok Bot data under a grok.com account (conversations + attachments) 
 The export script lives at the repo root (`../../grok-bot-export.py` relative to this skill):
 
 ```bash
-# Full export: conversations + attachments (idempotent)
+# Grok Bots (default): full export (conversations + attachments, idempotent)
 python3 ../../grok-bot-export.py
 
-# Messages only (~20 s, no attachments)
+# Grok Bots: messages only (~20 s, no attachments)
 python3 ../../grok-bot-export.py --messages-only
+
+# Regular Grok chats (non-Bot conversations)
+python3 ../../grok-bot-export.py --mode chat
 ```
 
 Output defaults to `~/Downloads/grok-bot-export-YYYYMMDD/`.

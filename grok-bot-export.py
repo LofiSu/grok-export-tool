@@ -33,6 +33,11 @@ import argparse
 import threading
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+
+import urllib.request
+import urllib.error
+import urllib.parse
 
 import websocket
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -53,13 +58,22 @@ def log(msg):
     print(msg, flush=True)
 
 
-def fmt_time(ms):
-    if not ms:
+def fmt_time(v):
+    if v is None or v == "":
         return ""
+    if isinstance(v, (int, float)):
+        ms = v
+        if 0 < ms < 1e12:
+            ms *= 1000
+        try:
+            return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ms / 1000))
+        except Exception:
+            return str(v)
+    s = str(v)
     try:
-        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ms / 1000))
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
-        return str(ms)
+        return s
 
 
 def sanitize(s):
@@ -394,25 +408,136 @@ def download_all_parallel(jobs, cookies, workers):
     return ok
 
 
-# ---------------- 主流程 ----------------
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("out_dir", nargs="?", default=os.path.expanduser(
-        "~/Downloads/grok-bot-export-" + time.strftime("%Y%m%d")))
-    ap.add_argument("--skip-attachments", "--messages-only", action="store_true",
-                    dest="skip_attachments",
-                    help="只导出对话消息（秒出），不下载附件")
-    ap.add_argument("--workers", type=int, default=6, help="附件并行下载线程数")
-    args = ap.parse_args()
+# ---------------- 普通 Grok 对话导出（/rest/app-chat/*） ----------------
+def chat_api(cookie_header, path, method="GET", body=None, tries=5):
+    url = "https://grok.com" + path
+    data = json.dumps(body).encode() if body else None
+    for i in range(tries):
+        req = urllib.request.Request(url, data=data, method=method, headers={
+            "Cookie": cookie_header, "User-Agent": UA, "Accept": "*/*",
+            "Content-Type": "application/json",
+            "Origin": "https://grok.com", "Referer": "https://grok.com/",
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return resp.status, resp.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            code = e.code
+            body_text = e.read().decode("utf-8", "replace")
+            if (code == 429 or code >= 500) and i < tries - 1:
+                time.sleep(1 * (2 ** i))
+                continue
+            return code, body_text
+        except Exception as e:
+            if i < tries - 1:
+                time.sleep(1 * (2 ** i))
+                continue
+            return 0, str(e)
+    return 0, "重试耗尽"
 
-    out_dir = os.path.expanduser(args.out_dir)
+
+def export_chat(cookies, out_dir):
+    cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
+    os.makedirs(out_dir, exist_ok=True)
+    conv_dir = os.path.join(out_dir, "conversations")
+    os.makedirs(conv_dir, exist_ok=True)
+
+    log("拉取普通对话会话列表 ...")
+    conversations = []
+    cursor = None
+    while True:
+        q = "?pageSize=200&limit=200"
+        if cursor:
+            q += "&nextCursor=" + urllib.parse.quote(cursor)
+        st, body = chat_api(cookie_header, "/rest/app-chat/conversations" + q)
+        if st != 200:
+            log(f"⚠️ 会话列表请求失败（HTTP {st}）")
+            break
+        data = json.loads(body)
+        arr = data.get("conversations") or []
+        conversations.extend(arr)
+        nc = data.get("nextCursor")
+        if not arr or not nc:
+            break
+        cursor = nc
+    log(f"✓ 找到 {len(conversations)} 个普通会话")
+
+    index = [f"# Grok 普通对话导出索引\n\n共 {len(conversations)} 个会话\n"]
+    all_norm = []
+
+    for i, conv in enumerate(conversations):
+        cid = conv.get("conversationId")
+        title = conv.get("title") or "未命名对话"
+        n = f"{i + 1:04d}"
+        safe = sanitize(title)
+
+        messages = []
+        try:
+            st, body = chat_api(cookie_header,
+                                f"/rest/app-chat/conversations/{cid}/response-node?includeThreads=true")
+            if st == 200:
+                nodes = (json.loads(body).get("responseNodes") or [])
+                ids = [x.get("responseId") for x in nodes if x.get("responseId")]
+                for j in range(0, len(ids), 50):
+                    st2, body2 = chat_api(
+                        cookie_header,
+                        f"/rest/app-chat/conversations/{cid}/load-responses",
+                        "POST", {"responseIds": ids[j:j + 50]})
+                    if st2 == 200:
+                        messages.extend((json.loads(body2).get("responses") or []))
+                    time.sleep(0.05)
+        except Exception as e:
+            log(f"  ⚠️ {title} 拉取失败: {e}")
+
+        log(f"[{i + 1}/{len(conversations)}] {title}: {len(messages)} 条消息")
+
+        norm = []
+        for m in messages:
+            sender = (m.get("sender") or "").lower()
+            role = "user" if sender == "human" else "assistant"
+            raw_msg = m.get("message")
+            content = raw_msg if isinstance(raw_msg, str) else json.dumps(raw_msg or "", ensure_ascii=False)
+            norm.append({
+                "conversationId": cid,
+                "title": title,
+                "role": role,
+                "sender": m.get("sender"),
+                "content": content,
+                "timestamp": fmt_time(m.get("createTime")),
+                "timestampMs": m.get("createTime"),
+            })
+            all_norm.append(norm[-1])
+
+        md = [f"# {title}", "", f"- 会话 ID: `{cid}`", f"- 消息数: {len(messages)}", "", "---", ""]
+        for m in norm:
+            who = "👤 用户" if m["role"] == "user" else "🤖 Grok"
+            md += [f"## {who}", f"*{m['timestamp']}*", "", m["content"], "", "---", ""]
+        with open(os.path.join(conv_dir, f"{n}_{safe}.md"), "w", encoding="utf-8") as f:
+            f.write("\n".join(md))
+        with open(os.path.join(conv_dir, f"{n}_{safe}.json"), "w", encoding="utf-8") as f:
+            json.dump({"conversationId": cid, "title": title,
+                       "createTime": conv.get("createTime"), "modifyTime": conv.get("modifyTime"),
+                       "messages": messages}, f, ensure_ascii=False, indent=2)
+        index.append(f"- [{n} {title}](conversations/{n}_{safe}.md) —— {len(messages)} 条")
+
+    with open(os.path.join(out_dir, "_index.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(index) + "\n")
+    with open(os.path.join(out_dir, "conversations.jsonl"), "w", encoding="utf-8") as f:
+        for m in all_norm:
+            f.write(json.dumps(m, ensure_ascii=False) + "\n")
+
+    log(f"✓ 普通对话导出完成：{len(conversations)} 个会话")
+
+
+# ---------------- 主流程 ----------------
+def export_bots(cookies, out_dir, skip_attachments=False, workers=6):
+    out_dir = os.path.expanduser(out_dir)
     os.makedirs(out_dir, exist_ok=True)
 
     log("=" * 60)
     log("Grok Bot 全量导出")
     log("=" * 60)
 
-    cookies = load_cookies()
     client = BotClient(cookies)
     client.connect()
     agents = client.roster()
@@ -481,10 +606,10 @@ def main():
     client.close()
 
     # ---- 阶段 2：并行下载附件 ----
-    if all_jobs and not args.skip_attachments:
-        log(f"\n📥 开始并行下载 {len(all_jobs)} 个附件（{args.workers} 线程，4MB 分块）...")
+    if all_jobs and not skip_attachments:
+        log(f"\n📥 开始并行下载 {len(all_jobs)} 个附件（{workers} 线程，4MB 分块）...")
         t0 = time.time()
-        ok = download_all_parallel(all_jobs, cookies, args.workers)
+        ok = download_all_parallel(all_jobs, cookies, workers)
         log(f"✓ 附件下载完成：{ok}/{len(all_jobs)} 成功，耗时 {time.time() - t0:.1f}s")
     elif all_jobs:
         log(f"\n已跳过附件下载（--skip-attachments），{len(all_jobs)} 个附件未下载")
@@ -528,6 +653,35 @@ AGENTS_MD = """# Grok Bot 数据导出（供 AI Agent 使用）
 - `localFile`：附件本地相对路径（在 attachments/ 下）
 - `event` / `call`：事件 / 通话原始数据
 """
+
+
+def main():
+    ap = argparse.ArgumentParser(description="导出 grok.com 的 Grok Bot 和普通对话数据")
+    ap.add_argument("out_dir", nargs="?", default=None,
+                    help="输出目录（默认 ~/Downloads/grok-*-export-YYYYMMDD）")
+    ap.add_argument("--mode", choices=["bot", "chat", "all"], default="bot",
+                    help="bot=Grok Bot，chat=普通对话，all=两者都导（默认 bot）")
+    ap.add_argument("--skip-attachments", "--messages-only", action="store_true",
+                    dest="skip_attachments", help="只导出对话消息（秒出），不下载附件")
+    ap.add_argument("--workers", type=int, default=6, help="附件并行下载线程数")
+    args = ap.parse_args()
+
+    cookies = load_cookies()
+    stamp = time.strftime("%Y%m%d")
+
+    if args.mode in ("bot", "all"):
+        bot_dir = args.out_dir or os.path.expanduser(f"~/Downloads/grok-bot-export-{stamp}")
+        export_bots(cookies, bot_dir, args.skip_attachments, args.workers)
+
+    if args.mode in ("chat", "all"):
+        if args.mode == "all" and args.out_dir:
+            chat_dir = os.path.expanduser(args.out_dir) + "-chat"
+        else:
+            chat_dir = args.out_dir or os.path.expanduser(f"~/Downloads/grok-chat-export-{stamp}")
+        log("=" * 60)
+        log("Grok 普通对话导出")
+        log("=" * 60)
+        export_chat(cookies, chat_dir)
 
 
 if __name__ == "__main__":
