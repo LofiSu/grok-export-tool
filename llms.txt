@@ -1,0 +1,44 @@
+# grok-export-tool
+
+> Export your complete **Grok Bot** data from [grok.com](https://grok.com) — every conversation plus multimodal attachments (images, videos, files) — into an Agent-friendly format, with a lightweight MCP server and an OpenCode skill so AI assistants can query the context directly.
+
+## Overview
+
+This repository provides:
+
+- **`grok-bot-export.py`** — exports every Grok Bot under an account (roster + full transcript) and downloads multimodal attachments in parallel.
+- **`grok-bot-mcp.py`** — a lightweight, zero-dependency stdio MCP server exposing `list_bots`, `get_bot`, and `search`.
+- **`.opencode/skills/grok-export/`** — an OpenCode skill that packages the export-and-query workflow.
+
+## Key properties
+
+- Fully local: no browser extension, no re-login, no API key.
+- Not affected by message quota: reads history over grok.com's internal WebSocket API using the cookies of an already-logged-in Chrome.
+- Agent-friendly output: normalized `messages.jsonl` (one JSON per line), readable `conversation.md`, raw `transcript.json`, and downloaded attachments.
+
+## Documentation
+
+- [README.md](README.md) — full documentation (English)
+- [README.zh-CN.md](README.zh-CN.md) — full documentation (Chinese)
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guide
+- [LICENSE](LICENSE) — MIT
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+
+# Full export (messages + attachments)
+python3 grok-bot-export.py
+
+# Messages only (~20 s)
+python3 grok-bot-export.py --messages-only
+```
+
+## Disclaimer
+
+Unofficial tool, not affiliated with or endorsed by xAI. Relies on reverse-engineered internal endpoints that may change without notice. Use it only to back up your own account data and respect grok.com's Terms of Service.
+
+## License
+
+[MIT](LICENSE)

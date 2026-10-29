@@ -1,6 +1,8 @@
 # grok-export-tool
 
-Export your complete **Grok Bot** data from [grok.com](https://grok.com) — every conversation plus all multimodal attachments (images, videos, files) — into an **Agent-friendly** format, with a lightweight **MCP server** so AI assistants (Codex, Claude Code, OpenCode, …) can query the context directly.
+[English](README.md) · [中文](README.zh-CN.md)
+
+Export your complete **Grok Bot** data from [grok.com](https://grok.com) — every conversation plus all multimodal attachments (images, videos, files) — into an **Agent-friendly** format, with a lightweight **MCP server** and **OpenCode skill** so AI assistants (Codex, Claude Code, OpenCode, …) can query the context directly.
 
 > Fully local. No browser extension, no re-login, no API key, and **no message-quota dependency** — it reads history over grok.com's internal WebSocket API using the cookies from your already-logged-in Chrome.
 
