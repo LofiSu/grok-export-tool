@@ -2,7 +2,7 @@
 
 [English](guide.md) · [中文](guide.zh-CN.md) · [说明](../README.zh-CN.md)
 
-在 Mac 上，按步骤备份你自己的 [grok.com](https://grok.com) 账号。一条命令里有两块数据：**Grok Bot**（名单、完整记录、附件）和**普通 Grok 对话**。可以只导 Bot、只导普通对话，或两者一起导。
+按步骤备份你自己的 [grok.com](https://grok.com) 账号。一条命令里有两块数据：**Grok Bot**（名单、完整记录、附件）和**普通 Grok 对话**。可以只导 Bot、只导普通对话，或两者一起导。
 
 它导出 Grok Bot 和普通 Grok 对话。导出脚本的进度日志本来就是中文。macOS 从钥匙串读取 Chrome cookie。Windows 和 Linux 在自动解密失败时使用 `--cookie "sso=...; sso-rw=..."`。不要把这些值贴进 issue 或聊天。
 
@@ -394,5 +394,7 @@ grok.com 可能不经通知就改掉这些接口。拉取最新的 `main` 再试
 ## 9. 接下来
 
 - [说明](../README.zh-CN.md) · [English README](../README.md)
-- 在 `main` 开始发布 GitHub Pages 之后：[项目网站](https://lofisu.github.io/grok-export-tool/)
-- [联系与捐赠](../README.zh-CN.md#联系与交流) — GitHub [@LofiSu](https://github.com/LofiSu)、[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
+- [项目网站](https://lofisu.github.io/grok-export-tool/) · [中文首页](https://lofisu.github.io/grok-export-tool/index.zh-CN.html)
+- [网站上的中文教程](https://lofisu.github.io/grok-export-tool/guide.zh-CN.html) · [English guide](https://lofisu.github.io/grok-export-tool/guide.html)
+- [联系](../README.zh-CN.md#联系) — [GitHub](https://github.com/LofiSu)、[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
+- [捐赠](../README.zh-CN.md#捐赠) — [GitHub Sponsors](https://github.com/sponsors/LofiSu)

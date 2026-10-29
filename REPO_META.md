@@ -1,18 +1,18 @@
 # Repository metadata
 
-Suggestions for the GitHub About box. Nothing in this file is applied automatically. Description, website, and topics still need a manual save on the GitHub website.
+Suggestions for the GitHub About box. Nothing in this file is applied automatically. If the About box on GitHub still shows an older sentence, paste the description below. The website field is already set.
 
 ## Description
 
-Use this text (162 characters; GitHub allows 350):
+Use this text (170 characters; GitHub allows 350):
 
-> Local exporter for your own Grok Bots and regular Grok chats. No API key. Writes a JSONL and Markdown archive, with a zero-dependency MCP server and agent skills.
+> Export your own Grok Bots and regular Grok chats. Fully local, no API key. CLI, zero-dependency MCP server, and agent skills. Writes a private JSONL and Markdown archive.
 
-Shorter alternative (76 characters):
+Shorter alternative (87 characters):
 
-> Export Grok Bots and chats locally. MCP server and agent skills. No API key.
+> Export Grok Bots and regular chats. Fully local CLI, MCP, and agent skills. No API key.
 
-The About text should stay a description of a personal backup tool: Bots and chats, local, no API key, MCP, and skills.
+The About text should stay a description of a personal backup tool: Grok Bots and regular chats, a fully local CLI, an MCP server, agent skills, and no API key.
 
 ## Topics
 
@@ -39,20 +39,14 @@ Set the About website field to:
 
 https://lofisu.github.io/grok-export-tool/
 
-That is the GitHub Pages URL for user `LofiSu` (Pages hostnames are lowercase). The site is the static files in `docs/`. It will answer only after both of these are true:
-
-1. This repository’s Pages source is **GitHub Actions** (Settings → Pages → Build and deployment → Source).
-2. `.github/workflows/pages.yml` has run on `main` and the deployment succeeded.
-
-Until then the URL 404s. The README is the page that works as soon as the repository is public.
+That is the GitHub Pages site for this repository (user `LofiSu`; Pages hostnames are lowercase). The site is the static files in `docs/`, deployed by `.github/workflows/pages.yml`. The homepage is already this URL.
 
 ## Still needs a click on GitHub
 
-- Paste the description above into the About box.
-- Paste the website URL above.
-- Apply the topics above. Adding `github-pages` is part of this packaging pass; the rest carry forward.
-- Set Pages → Source to **GitHub Actions** once, so the workflow may deploy.
-- GitHub Sponsors for `LofiSu` may still be off. The README and the site footer accept sponsorship by email at lofisuchat@gmail.com.
+- Paste the description above into the About box if it still shows the previous sentence. This change does not update About through the API.
+- Leave the website as `https://lofisu.github.io/grok-export-tool/`.
+- Topics already on the repository can stay. The list above is the intended set.
+- Contact in the README and on the site is GitHub (`https://github.com/LofiSu`) and lofisuchat@gmail.com. Donate is GitHub Sponsors (`https://github.com/sponsors/LofiSu`) and the same email. Sponsors for `LofiSu` may still be off; the email still works.
 - The approved logo is `docs/assets/logo.png` (same bytes as `docs/assets/grok-bot-logo.png`). The poster is `docs/assets/poster.png`.
 
 ## Before making the repository public
