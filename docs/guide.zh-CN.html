@@ -6,13 +6,15 @@
   <title>使用教程 — grok-export-tool</title>
   <meta name="description" content="在 Mac 上按步骤备份你自己的 grok.com：Grok Bot 和普通对话，再用 MCP 查询 Bot 归档。">
   <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/guide.zh-CN.html">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <a class="skip" href="#content">跳到正文</a>
   <div class="frame">
     <header class="site-header">
-      <a class="wordmark" href="index.zh-CN.html">grok-export-tool</a>
+      <a class="wordmark" href="index.zh-CN.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
       <nav>
         <a href="index.zh-CN.html">首页</a>
         <a href="guide.html" lang="en">English</a>
@@ -25,7 +27,7 @@
         <p class="kicker">使用教程</p>
         <h1>备份你自己的账号</h1>
         <p class="deck">Grok Bot（含附件）和普通 Grok 对话。一条命令，两个目录，在已经登录 Chrome 的那台 Mac 上。</p>
-        <p class="scope">非官方的本地备份。导出脚本的进度日志是中文。Markdown 源文件：<a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.zh-CN.md">docs/guide.zh-CN.md</a>。</p>
+        <p class="scope">导出 Grok Bot 和普通对话。进度日志是中文。Markdown 源文件：<a href="https://github.com/LofiSu/grok-export-tool/blob/main/docs/guide.zh-CN.md">docs/guide.zh-CN.md</a>。</p>
       </header>
 
       <section>
@@ -46,7 +48,7 @@
         <h2>1. 开始之前</h2>
         <div class="measure">
           <ol>
-            <li>一台 Mac。</li>
+            <li>macOS、Windows 或 Linux。macOS 用钥匙串。Windows 可以用 DPAPI。Linux 是尽力而为。任何平台都可以传 <code>--cookie</code>。</li>
             <li>Google Chrome 已在 <a href="https://grok.com">grok.com</a> 登录你要备份的账号。Safari、Firefox、Arc、Chromium 都不会被读取。</li>
             <li>这个登录位于 Chrome 配置档 Default、Profile 1 或 Profile 2。其他配置档会被忽略。</li>
             <li>Python 3.9 或更高版本（<code>python3 --version</code>）。</li>
@@ -231,7 +233,7 @@ python3 grok-bot-export.py --mode all ~/Backups/grok-bots</code></pre>
 }</code></pre>
 
           <h3>OpenCode skill</h3>
-          <p>把本仓库当作项目打开。OpenCode 会加载 <code>.opencode/skills/grok-export/SKILL.md</code>。Skill 名称是 Grok Export。用平常的话说要导出，或要在 Bot 归档里查一件事。</p>
+          <p>Skill 文件是 <code>.claude/skills/grok-export/SKILL.md</code>。Claude Code 和 OpenCode 会读取项目里的 <code>.claude/skills/</code>。Skill 名称是 grok-export。用平常的话说要导出，或要在 Bot 归档里查一件事。</p>
 
           <h3>其他 Agent</h3>
           <p>任何 stdio MCP 客户端都可以启动同一个程序。</p>
@@ -330,16 +332,24 @@ args = [
       <div class="cols">
         <div>
           <h2>联系</h2>
-          <p>欢迎来信，也欢迎一起做。</p>
+          <p>欢迎 Connect。也欢迎协作，或约一次咖啡聊。</p>
           <ul>
             <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="https://www.lofisu.chat/">博客 · lofisu.chat</a></li>
+            <li><a href="https://lofisu.vercel.app/">lofisu.vercel.app</a></li>
             <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
             <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
           </ul>
         </div>
         <div>
           <h2>捐赠</h2>
-          <p><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a>。若尚未开通，发邮件同样欢迎。</p>
+          <p>欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee。</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="https://www.buymeacoffee.com/LofiSu">Buy Me a Coffee</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">邮件赞助</a></li>
+          </ul>
+          <p>如果咖啡页面 404，改用 Sponsors 或邮件。</p>
         </div>
         <div>
           <h2>项目</h2>

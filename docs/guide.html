@@ -6,13 +6,15 @@
   <title>Guide — grok-export-tool</title>
   <meta name="description" content="Step-by-step backup of your own grok.com Grok Bots and regular chats on a Mac, then query the Bot archive with MCP.">
   <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/guide.html">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
   <div class="frame">
     <header class="site-header">
-      <a class="wordmark" href="index.html">grok-export-tool</a>
+      <a class="wordmark" href="index.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
       <nav>
         <a href="index.html">Home</a>
         <a href="guide.zh-CN.html" lang="zh-Hans">中文</a>
@@ -46,7 +48,7 @@
         <h2>1. Before you start</h2>
         <div class="measure">
           <ol>
-            <li>A Mac.</li>
+            <li>macOS, Windows, or Linux. macOS uses the Keychain. Windows can use DPAPI. Linux is best-effort. Any platform can pass <code>--cookie</code>.</li>
             <li>Google Chrome, logged in at <a href="https://grok.com">grok.com</a> as the account you want to back up. Safari, Firefox, Arc, and Chromium are not read.</li>
             <li>That login lives in the Chrome profile Default, Profile 1, or Profile 2. Other profiles are ignored.</li>
             <li>Python 3.9 or newer (<code>python3 --version</code>).</li>
@@ -232,7 +234,7 @@ python3 grok-bot-export.py --mode all ~/Backups/grok-bots</code></pre>
 }</code></pre>
 
           <h3>OpenCode skill</h3>
-          <p>Open this repository as the project. OpenCode loads <code>.opencode/skills/grok-export/SKILL.md</code>. The skill name is Grok Export. Ask, in ordinary language, to export or to look something up in the Bot archive.</p>
+          <p>The skill file is <code>.claude/skills/grok-export/SKILL.md</code>. Claude Code and OpenCode read <code>.claude/skills/</code> in the project. The skill name is grok-export. Ask, in ordinary language, to export or to look something up in the Bot archive.</p>
 
           <h3>Other agents</h3>
           <p>Any stdio MCP client can launch the same program.</p>
@@ -331,16 +333,24 @@ args = [
       <div class="cols">
         <div>
           <h2>Contact</h2>
-          <p>Questions, corrections, and collaboration are welcome.</p>
+          <p>欢迎 Connect. Questions, collaboration, and a coffee chat are welcome.</p>
           <ul>
             <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="https://www.lofisu.chat/">Blog · lofisu.chat</a></li>
+            <li><a href="https://lofisu.vercel.app/">lofisu.vercel.app</a></li>
             <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
             <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
           </ul>
         </div>
         <div>
           <h2>Donate</h2>
-          <p><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a>. If Sponsors is not enabled yet, email is welcome too.</p>
+          <p>欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee.</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="https://www.buymeacoffee.com/LofiSu">Buy Me a Coffee</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">Sponsor by email</a></li>
+          </ul>
+          <p>If the coffee page 404s, use Sponsors or email.</p>
         </div>
         <div>
           <h2>Project</h2>

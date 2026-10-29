@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-This is a local, unofficial backup tool. Security fixes land on the default branch (`main`). There are no versioned releases yet.
+This is a local backup tool for your own grok.com account. Security fixes land on the default branch (`main`). There are no versioned releases yet.
 
 | Version | Supported |
 | --- | --- |

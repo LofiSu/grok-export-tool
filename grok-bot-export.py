@@ -39,6 +39,7 @@ from datetime import datetime
 import urllib.request
 import urllib.error
 import urllib.parse
+import platform
 
 import websocket
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -55,11 +56,26 @@ _SECRET_RE = re.compile(
 )
 _JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]+)?")
 
-CHROME_PROFILES = [
-    os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/Cookies"),
-    os.path.expanduser("~/Library/Application Support/Google/Chrome/Profile 1/Cookies"),
-    os.path.expanduser("~/Library/Application Support/Google/Chrome/Profile 2/Cookies"),
-]
+def default_chrome_profiles():
+    """按平台返回 Chrome 的 cookie 数据库路径列表。"""
+    system = platform.system()
+    home = os.path.expanduser("~")
+    if system == "Darwin":
+        base = os.path.join(home, "Library", "Application Support", "Google", "Chrome")
+        return [os.path.join(base, "Default", "Cookies"),
+                os.path.join(base, "Profile 1", "Cookies"),
+                os.path.join(base, "Profile 2", "Cookies")]
+    if system == "Windows":
+        local = os.environ.get("LOCALAPPDATA", "")
+        base = os.path.join(local, "Google", "Chrome", "User Data")
+        return [os.path.join(base, "Default", "Network", "Cookies"),
+                os.path.join(base, "Default", "Cookies"),
+                os.path.join(base, "Profile 1", "Network", "Cookies")]
+    if system == "Linux":
+        base = os.path.join(home, ".config", "google-chrome")
+        return [os.path.join(base, "Default", "Cookies"),
+                os.path.join(base, "Default", "Network", "Cookies")]
+    return []
 
 
 def log(msg):
@@ -207,7 +223,21 @@ def _chrome_safe_storage_password():
         return None
 
 
-def decrypt_chrome_cookies(db_path):
+def _store_cookie(cookies, name, value):
+    if not isinstance(name, str) or not name or not isinstance(value, str) or not value:
+        return
+    if any(c in name or c in value for c in "\r\n\x00;"):
+        return
+    cookies[name] = value
+
+
+def _aes_cbc_unpad(key, iv, data):
+    dec = Cipher(algorithms.AES(key), modes.CBC(iv)).decryptor()
+    return _pkcs7_unpad(dec.update(data) + dec.finalize())
+
+
+def decrypt_macos(db_path):
+    """macOS：钥匙串 "Chrome Safe Storage" 密钥 + AES-CBC。"""
     rows = _read_cookie_rows(db_path)
     pw = _chrome_safe_storage_password()
     if not pw:
@@ -215,34 +245,92 @@ def decrypt_chrome_cookies(db_path):
     try:
         key = hashlib.pbkdf2_hmac("sha1", pw.encode(), b"saltysalt", 1003, 16)
         iv = b" " * 16
-
-        def decrypt(blob):
-            if not blob or blob[:3] != b"v10":
-                return None
-            c = Cipher(algorithms.AES(key), modes.CBC(iv)).decryptor()
-            plain = _pkcs7_unpad(c.update(blob[3:]) + c.finalize())
-            if not plain or len(plain) <= 32:
-                return None
-            return plain[32:].decode("utf-8", errors="replace")
-
         cookies = OrderedDict()
         for _host, name, blob in rows:
-            if not isinstance(name, str) or not name:
-                continue
             try:
-                value = decrypt(blob)
+                if not blob or blob[:3] != b"v10":
+                    continue
+                plain = _aes_cbc_unpad(key, iv, blob[3:])
+                if not plain or len(plain) <= 32:
+                    continue
+                _store_cookie(cookies, name, plain[32:].decode("utf-8", "replace"))
             except Exception:
-                value = None
-            if isinstance(value, str) and value:
-                cookies[name] = value
+                continue
         return cookies
     finally:
         pw = None
 
 
-def load_cookies():
+def decrypt_windows(db_path):
+    """Windows：DPAPI（v10）。v20（App-Bound Encryption）需要 --cookie。"""
+    try:
+        import win32crypt
+    except ImportError:
+        log("  （Windows 自动解密需 pywin32：pip install pywin32；或改用 --cookie）")
+        return {}
+    cookies = OrderedDict()
+    for _host, name, blob in _read_cookie_rows(db_path):
+        try:
+            if not blob or blob[:3] != b"v10":
+                continue
+            data = win32crypt.CryptUnprotectData(blob[3:], None, None, None, 0)[1]
+            if not data or len(data) <= 32:
+                continue
+            _store_cookie(cookies, name, data[32:].decode("utf-8", "replace"))
+        except Exception:
+            continue
+    return cookies
+
+
+def decrypt_linux(db_path):
+    """Linux：尽力而为（老版本固定密钥 peanuts / 明文）。多数发行版需要 --cookie。"""
+    cookies = OrderedDict()
+    key = hashlib.pbkdf2_hmac("sha1", b"peanuts", b"saltysalt", 1, 16)
+    iv = b" " * 16
+    for _host, name, blob in _read_cookie_rows(db_path):
+        try:
+            if blob and blob[:3] in (b"v10", b"v11"):
+                plain = _aes_cbc_unpad(key, iv, blob[3:])
+                if not plain:
+                    continue
+                _store_cookie(cookies, name, plain.decode("utf-8", "replace"))
+            elif blob:
+                _store_cookie(cookies, name, blob.decode("utf-8", "replace"))
+        except Exception:
+            continue
+    return cookies
+
+
+def decrypt_chrome_cookies(db_path):
+    system = platform.system()
+    if system == "Windows":
+        return decrypt_windows(db_path)
+    if system == "Linux":
+        return decrypt_linux(db_path)
+    return decrypt_macos(db_path)
+
+
+def parse_cookie_string(raw):
+    cookies = OrderedDict()
+    for part in str(raw or "").split(";"):
+        part = part.strip()
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        _store_cookie(cookies, key.strip(), value.strip())
+    return cookies
+
+
+def load_cookies(manual_cookie=None):
+    if manual_cookie:
+        cookies = parse_cookie_string(manual_cookie)
+        if cookies.get("sso") and cookies.get("sso-rw"):
+            log("✓ 使用手动提供的 cookie")
+            return cookies
+        log("✗ 手动 cookie 缺少 sso / sso-rw")
+        sys.exit(1)
     saw_db = False
-    for db in CHROME_PROFILES:
+    for db in default_chrome_profiles():
         if not os.path.isfile(db):
             continue
         saw_db = True
@@ -252,10 +340,13 @@ def load_cookies():
             log(f"读取 Chrome cookie 数据库失败：{redact(exc)}")
             continue
         if cookies.get("sso") and cookies.get("sso-rw"):
+            log(f"✓ 已解密登录态（{len(cookies)} 个 cookie）")
             return cookies
     if not saw_db:
-        log("未找到 Chrome 的 Default、Profile 1 或 Profile 2 Cookies 文件")
-    log("✗ 未能从 Chrome 解密出 grok.com 登录态")
+        log("未找到本机 Chrome 的 Cookies 数据库")
+    log("✗ 未能自动解密 grok.com 登录态")
+    log('  可手动提供：--cookie "sso=...; sso-rw=..."')
+    log("  （浏览器 DevTools → Application → Cookies → grok.com，复制 sso 和 sso-rw 的值）")
     sys.exit(1)
 
 
@@ -950,12 +1041,14 @@ def main():
     ap.add_argument("--skip-attachments", "--messages-only", action="store_true",
                     dest="skip_attachments", help="只导出对话消息（秒出），不下载附件")
     ap.add_argument("--workers", type=int, default=6, help="附件并行下载线程数（1–32）")
+    ap.add_argument("--cookie", default=None,
+                    help='手动提供 cookie（跨平台回退）：--cookie "sso=...; sso-rw=..."')
     args = ap.parse_args()
     if args.workers < 1 or args.workers > 32:
         ap.error("--workers must be between 1 and 32")
     os.umask(0o077)
 
-    cookies = load_cookies()
+    cookies = load_cookies(args.cookie)
     stamp = time.strftime("%Y%m%d")
 
     if args.mode in ("bot", "all"):

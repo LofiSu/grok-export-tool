@@ -1,25 +1,29 @@
 [English](README.md) · [中文](README.zh-CN.md)
 
-> **标志和海报待补。** 标志会使用提供的 Grok Bot 头像，原样放在 `docs/assets/grok-bot-logo.png`，旁边保留这句声明：非官方工具，与 xAI 无关，也未获其认可。海报将放在 `docs/assets/poster.png`。这两个文件现在都不在仓库里。
+![grok-export-tool。导出 Grok Bot 和普通对话。MCP server 与 Agent skills。全程本地，无需 API key。](docs/assets/poster.png)
 
 # grok-export-tool
 
-把你在 [grok.com](https://grok.com) 上的记录留在自己的电脑上：每一个 **Grok Bot**（含附件），以及**普通 Grok 对话**。Bot 归档按人和 Agent 都好读的方式摆放，再用一个很小的 **MCP server**，让 [OpenCode](https://opencode.ai) 和其他助手回头查询。
+导出 Grok Bot 和普通对话。
 
-非官方。跑在你自己的 Mac 上，用的是已经登录 grok.com 的 Chrome。只备份你自己的账号。
+MCP server 与 Agent skills。
+
+全程本地，无需 API key。
+
+这是给你自己的 [grok.com](https://grok.com) 账号用的本地导出器：每一个 **Grok Bot**（名单、完整记录、附件），以及**普通 Grok 对话**。它写成人和 Agent 都好读的归档，再用一个很小的 stdio **MCP server** 和一份 **Agent Skill**，让 [OpenCode](https://opencode.ai)、Claude Code、Codex 等查询 Bot 归档。
+
+它跑在已经登录 Chrome 的那台电脑上。读取的是你已经有的历史。它不发送新对话。
 
 ## 特性
 
-- 导出当前 Chrome 登录态能看到的全部 Grok Bot：名单、完整记录、附件（图片、视频和其他文件）。附件按 4MB 分块并行下载。
-- 普通 Grok 对话导出到另一个目录：每个会话一份 Markdown、一份原始 JSON，外加一个合并的 JSONL。
-- 只想要 Bot 的文字时，可以跳过附件（`--messages-only`）。
-- 归档适合 Agent 阅读：归一化 JSONL、可读 Markdown、原始 JSON，以及索引。
-- 附带零第三方依赖的 stdio MCP server（`list_bots`、`get_bot`、`search`），查询的是 **Bot** 归档。
-- 仓库里带有 OpenCode skill：`.opencode/skills/grok-export/`，覆盖导出和查询。
+- **命令行。** `grok-bot-export.py` 可以导出 Bot、普通对话，或两者一起（`--mode bot`、`--mode chat`、`--mode all`）。`--messages-only` 会跳过 Bot 的附件下载。
+- **Grok Bot。** 名单、完整记录、附件（图片、视频和其他文件）。附件按 4MB 分块并行下载。
+- **普通对话。** 另一个目录：每个会话一份 Markdown、一份原始 JSON，外加一个合并的 JSONL。
+- **归档。** 归一化 JSONL、可读 Markdown、原始 JSON，以及索引。
+- **MCP。** 零第三方依赖的 stdio server：`list_bots`、`get_bot`、`search`。它读取 Bot 归档。
+- **Skills。** `.claude/skills/grok-export/` 是一份 Agent Skill，Claude Code、OpenCode，以及其他会加载这个目录的 Agent 都能用。
 
-导出的是你已经有的历史。它不发送新对话，也不删除数据。Bot 历史走 grok.com 的 Bot WebSocket。普通对话走 grok.com 的 app-chat HTTP 接口；这个接口可能返回 HTTP 429，脚本会重试。
-
-目前只有 macOS + Google Chrome。会查看的配置档是 Default、Profile 1 和 Profile 2。MCP server 读取 Grok Bot 导出目录。普通对话导出是你自己打开的文件。
+Bot 历史走 grok.com 的 Bot WebSocket。普通对话走 grok.com 的 app-chat HTTP 接口；这个接口可能返回 HTTP 429，脚本会重试。MCP server 不索引普通对话导出。那些文件请自己打开，或把目录交给 Agent。
 
 ## 快速开始
 
@@ -31,7 +35,7 @@ source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
-需要 Python 3.9 或更高版本。依赖是 `websocket-client` 和 `cryptography`（[requirements.txt](requirements.txt)）。MCP server 只用标准库，所以即使用虚拟环境跑导出，MCP 仍可以用系统自带的 `python3`。
+需要 Python 3.9 或更高版本。依赖是 `websocket-client` 和 `cryptography`（[requirements.txt](requirements.txt)）。Windows 上若要自动解密 cookie，还需要 `pywin32`。MCP server 只用标准库。
 
 ```bash
 python3 grok-bot-export.py                  # Grok Bot：消息和附件
@@ -42,9 +46,21 @@ python3 grok-bot-export.py --mode all       # 两者都导出
 
 三个入口也可以写成 `./export.sh`、`./export-messages.sh`、`./export-chat.sh`。
 
-第一次运行时，macOS 会询问钥匙串项目 **Chrome Safe Storage**。选择允许。进度日志是中文。未指定目录时，文件写到 `~/Downloads/`。
+| 平台 | Cookie 登录 |
+| --- | --- |
+| macOS | 钥匙串项目 **Chrome Safe Storage**。会查看 Default、Profile 1、Profile 2。 |
+| Windows | 安装 `pywin32` 后走 DPAPI。若是 App-Bound Encryption，请用 `--cookie`。 |
+| Linux | 尽力而为。失败时用 `--cookie`。 |
 
-[使用教程](docs/guide.zh-CN.md) 按步骤写了安装、每种导出、如何阅读归档、OpenCode，以及真正会遇到的问题（钥匙串、Chrome 未登录、名单为空）。
+```bash
+python3 grok-bot-export.py --cookie "sso=...; sso-rw=..."
+```
+
+从你自己浏览器的 DevTools 里复制 `sso` 和 `sso-rw`。不要把这些值贴进 issue、聊天或 git。
+
+进度日志是中文。未指定目录时，文件写到 `~/Downloads/`。
+
+[使用教程](docs/guide.zh-CN.md) 按步骤写了安装、每种导出、归档、MCP、skills，以及真正会遇到的问题。
 
 ## 教程
 
@@ -76,17 +92,23 @@ OpenCode 当前的配置 schema 把服务器写在 `mcp.servers` 下。编辑 `~
 }
 ```
 
-工具：
-
 | 工具 | 作用 |
 | --- | --- |
 | `list_bots` | 名称、id、消息数、最后活跃时间 |
 | `get_bot` | 按名称、id 片段，或 `01` 这样的文件夹前缀取一个 bot。`limit` 默认 200 |
 | `search` | 在消息正文里做区分大小写的子串搜索，并带上相邻消息。`context` 默认 2 |
 
-较旧的 OpenCode 把服务器对象直接放在 `mcp` 下（当前 schema 里这种写法已弃用）。Claude Code、Codex、Cursor 启动的是同一个进程，只是配置文件不同。路径、参数和其他客户端见[教程](docs/guide.zh-CN.md#6-opencode-的-mcp-server)。
+Claude Code、Codex、Cursor 启动的是同一个进程，只是配置文件不同。路径和示例见[教程](docs/guide.zh-CN.md#6-opencode-的-mcp-server)。
 
-在本仓库作为项目打开时，OpenCode 会发现 `.opencode/skills/grok-export/`。Skill 名称是 **Grok Export**。
+## Agent skills
+
+Skill 在 `.claude/skills/grok-export/SKILL.md`。
+
+- **Claude Code** 会读取项目里的 `.claude/skills/`。
+- **OpenCode** 也会读这个目录，或在配置里写 `"skills": [".claude/skills"]`。
+- **Codex、Copilot、Gemini CLI、Cursor** — 按各自文档，把 `grok-export/` 拷到它们的 skills 目录。
+
+Skill 名称是 **grok-export**。用平常的话说要导出，或要在 Bot 归档里查一件事。
 
 ## 输出布局
 
@@ -126,19 +148,30 @@ Grok Bot（默认，或 `--mode all` 的 Bot 那一半）：
 
 ## 免责声明
 
-这是非官方工具，与 xAI 无关，也未获其认可。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。漏洞请私下报告，报告中不要包含 cookie 或对话内容，见 [SECURITY.md](SECURITY.md)。
+这个项目由社区维护，不是 xAI 发布的产品。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。漏洞请私下报告，报告中不要包含 cookie 或对话内容，见 [SECURITY.md](SECURITY.md)。
 
 ## 联系与交流
 
-欢迎来信，也欢迎一起做。使用上的问题、文档勘误，以及这条 Mac + Chrome 路径之外的平台支持，都可以直接联系。
+欢迎来信，也欢迎一起做。使用上的问题、文档勘误、平台支持，或约一次咖啡聊，都可以。
+
+欢迎 Connect。
 
 - GitHub：[github.com/LofiSu](https://github.com/LofiSu)
+- 博客：[lofisu.chat](https://www.lofisu.chat/) · [lofisu.vercel.app](https://lofisu.vercel.app/)
 - 邮箱：[lofisuchat@gmail.com](mailto:lofisuchat@gmail.com)
 - X：[x.com/QiuMilorw](https://x.com/QiuMilorw)（Rowan）
 
 ## 捐赠
 
-如果这次备份省下了一整个下午，可以通过 [GitHub Sponsors](https://github.com/sponsors/LofiSu) 支持后续维护。若 Sponsors 尚未开通，写一封邮件到 [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) 即可，邮件捐赠同样欢迎。随缘就好。
+欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee。
+
+如果这次备份省下了时间，下面任意一种都很好：
+
+- [GitHub Sponsors](https://github.com/sponsors/LofiSu)
+- [Buy Me a Coffee](https://www.buymeacoffee.com/LofiSu) — 如果页面 404，改用 Sponsors 或邮件
+- 也可以发邮件到 [lofisuchat@gmail.com](mailto:lofisuchat@gmail.com) 说一声赞助
+
+随缘就好。
 
 ## 许可证
 

@@ -4,15 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>grok-export-tool</title>
-  <meta name="description" content="非官方的本地备份：你自己的 Grok Bot 和普通 Grok 对话。macOS、Chrome，以及一个很小的 MCP server。">
+  <meta name="description" content="导出你自己的 Grok Bot 和普通 Grok 对话。全程本地，无需 API key。命令行、MCP server 和 Agent skills。">
   <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/index.zh-CN.html">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <a class="skip" href="#content">跳到正文</a>
   <div class="frame">
     <header class="site-header">
-      <a class="wordmark" href="index.zh-CN.html">grok-export-tool</a>
+      <a class="wordmark" href="index.zh-CN.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
       <nav>
         <a href="guide.zh-CN.html">教程</a>
         <a href="index.html" lang="en">English</a>
@@ -22,19 +24,16 @@
 
     <main id="content">
       <header class="hero">
-        <p class="kicker">非官方 · 本地 · 你的账号</p>
+        <p class="kicker">本地 · 你的账号 · 无需 API key</p>
         <h1>grok-export-tool</h1>
-        <p class="deck">把 Grok Bot 和普通 Grok 对话留在自己的电脑上，再用一个小 MCP server 查询 Bot 归档。</p>
-        <p class="scope">跑在你的 Mac 上，用的是已经登录 grok.com 的 Chrome。它读取你已经有的历史，不发送新对话。非官方工具，与 xAI 无关，也未获其认可。</p>
+        <p class="deck">导出 Grok Bot 和普通对话。MCP server 与 Agent skills。全程本地，无需 API key。</p>
+        <p class="scope">给已经登录 grok.com 的 Chrome 用的本地导出器：带附件的 Grok Bot，以及普通 Grok 对话。它读取你已经有的历史，不发送新对话。</p>
         <div class="actions">
           <a class="primary" href="guide.zh-CN.html">阅读教程</a>
           <a href="https://github.com/LofiSu/grok-export-tool">查看源码</a>
         </div>
-        <figure class="poster-slot">
-          <p>
-            <span class="label">标志和海报</span>
-            待补。Grok Bot 头像会原样放在 <code>docs/assets/grok-bot-logo.png</code>，并在旁边保留非官方声明。海报将放在 <code>docs/assets/poster.png</code>。
-          </p>
+        <figure class="poster">
+          <img src="assets/poster.png" alt="grok-export-tool。导出 Grok Bot 和普通对话。MCP server 与 Agent skills。全程本地，无需 API key。">
         </figure>
       </header>
 
@@ -46,9 +45,9 @@
             <li>普通 Grok 对话在另一个目录：Markdown、原始 JSON，以及一份合并的 JSONL。</li>
             <li>只想要 Bot 的文字时，可以跳过附件下载。</li>
             <li>零第三方依赖的 stdio MCP server：<code>list_bots</code>、<code>get_bot</code>、<code>search</code>。它读取的是 Bot 归档。</li>
-            <li>仓库里带有 OpenCode skill，覆盖导出和查询。</li>
+            <li>Agent Skill 在 <code>.claude/skills/grok-export/</code>，Claude Code、OpenCode 以及其他会加载这个目录的 Agent 都能用。</li>
           </ul>
-          <p>目前只有 macOS 和 Google Chrome。会查看的配置档是 Default、Profile 1 和 Profile 2。普通对话导出保存文本和原始 JSON，不下载附件文件。</p>
+          <p>macOS 通过钥匙串读取 Chrome。Windows 可以用 DPAPI。Linux 是尽力而为，三个平台都可以用 <code>--cookie</code>。普通对话导出保存文本和原始 JSON，不下载附件文件。</p>
         </div>
       </section>
 
@@ -97,7 +96,7 @@ python3 grok-bot-export.py --mode all       # 两者都导出</code></pre>
       <section id="disclaimer">
         <h2>免责声明</h2>
         <div class="measure">
-          <p>非官方工具，与 xAI 无关，也未获其认可。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。</p>
+          <p>由社区维护，不是 xAI 发布的产品。它依赖 grok.com 的接口，这些接口可能随时改变。请只备份你自己拥有的账号，并遵守 grok.com 的条款。导出目录视为私密。</p>
         </div>
       </section>
     </main>
@@ -106,16 +105,24 @@ python3 grok-bot-export.py --mode all       # 两者都导出</code></pre>
       <div class="cols">
         <div>
           <h2>联系</h2>
-          <p>欢迎来信，也欢迎一起做。</p>
+          <p>欢迎 Connect。也欢迎协作，或约一次咖啡聊。</p>
           <ul>
             <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="https://www.lofisu.chat/">博客 · lofisu.chat</a></li>
+            <li><a href="https://lofisu.vercel.app/">lofisu.vercel.app</a></li>
             <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
             <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
           </ul>
         </div>
         <div>
           <h2>捐赠</h2>
-          <p><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a>。若尚未开通，发邮件同样欢迎。</p>
+          <p>欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee。</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="https://www.buymeacoffee.com/LofiSu">Buy Me a Coffee</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">邮件赞助</a></li>
+          </ul>
+          <p>如果咖啡页面 404，改用 Sponsors 或邮件。</p>
         </div>
         <div>
           <h2>项目</h2>
@@ -126,7 +133,7 @@ python3 grok-bot-export.py --mode all       # 两者都导出</code></pre>
           </ul>
         </div>
       </div>
-      <p class="fine">grok-export-tool。你自己账号的本地备份。非官方，与 xAI 无关。标志和海报待补。</p>
+      <p class="fine">grok-export-tool。导出 Grok Bot 和普通对话。全程本地，无需 API key。</p>
     </footer>
   </div>
 </body>

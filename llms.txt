@@ -1,42 +1,36 @@
 # grok-export-tool
 
-> Unofficial local backup of your own Grok Bots and regular Grok chats from grok.com. Runs on a Mac where Google Chrome is already logged in. Writes a JSONL and Markdown archive. A zero-dependency stdio MCP server can query the Bot archive.
+> Export your own Grok Bots and regular Grok chats from grok.com. Fully local, no API key. A CLI writes a JSONL and Markdown archive. A zero-dependency stdio MCP server and an Agent Skill let assistants query the Bot archive.
 
 ## Overview
 
-This repository provides:
+- **`grok-bot-export.py`** — local exporter. `--mode bot` (default), `--mode chat`, or `--mode all`. `--messages-only` skips Bot attachment downloads.
+- **`grok-bot-mcp.py`** — stdio MCP server, standard library only: `list_bots`, `get_bot`, `search`. It reads a Bot export. It does not index a chat export and it does not open a network connection.
+- **`.claude/skills/grok-export/`** — Agent Skill (`SKILL.md`) for Claude Code, OpenCode, and other agents that load that layout.
+- Archive: normalized JSONL, readable Markdown, and raw JSON.
 
-- **`grok-bot-export.py`** — exports Grok Bots (roster, transcripts, attachments) and, with `--mode chat` or `--mode all`, regular Grok chats.
-- **`grok-bot-mcp.py`** — stdio MCP server, standard library only: `list_bots`, `get_bot`, `search`. It reads a Bot export directory. It does not index a chat export, and it does not open a network connection.
-- **`.opencode/skills/grok-export/`** — OpenCode skill for the export-and-query workflow. The skill name is Grok Export.
+## Platforms
 
-## Modes
+- macOS: Chrome Safe Storage in the Keychain. Profiles Default, Profile 1, Profile 2.
+- Windows: DPAPI when `pywin32` is installed. Otherwise `--cookie`.
+- Linux: best-effort. Otherwise `--cookie "sso=...; sso-rw=..."`.
+- Do not put real cookie values in issues, chat, or git.
 
-- Default / `--mode bot`: every Grok Bot. Attachments download in parallel, 4 MB chunks, 6 workers unless `--workers` is set.
-- `--messages-only` (alias `--skip-attachments`): Bot text only. No effect on chat export.
-- `--mode chat`: regular Grok chats. Text and raw JSON. No attachment files. Default folder `~/Downloads/grok-chat-export-YYYYMMDD/`.
-- `--mode all`: both. Separate directories. If you pass one directory, chats go to that path with `-chat` appended.
-
-Bot default folder: `~/Downloads/grok-bot-export-YYYYMMDD/`.
-
-Chrome profiles scanned: Default, Profile 1, Profile 2. The first run needs macOS Keychain access to **Chrome Safe Storage**. Logs are Chinese and do not print cookie values. Export directories are mode 0700 and files mode 0600.
+Logs are Chinese and do not print cookie values. Export directories are mode 0700 and files mode 0600.
 
 ## Documentation
 
-- [README.md](README.md) — English
-- [README.zh-CN.md](README.zh-CN.md) — 中文
-- [docs/guide.md](docs/guide.md) — English tutorial
-- [docs/guide.zh-CN.md](docs/guide.zh-CN.md) — 中文教程
-- [https://lofisu.github.io/grok-export-tool/](https://lofisu.github.io/grok-export-tool/) — site, after GitHub Pages is enabled on `main`
-- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [README.md](README.md)
+- [README.zh-CN.md](README.zh-CN.md)
+- [docs/guide.md](docs/guide.md)
+- [docs/guide.zh-CN.md](docs/guide.zh-CN.md)
+- [https://lofisu.github.io/grok-export-tool/](https://lofisu.github.io/grok-export-tool/)
 - [SECURITY.md](SECURITY.md)
 - [LICENSE](LICENSE) — MIT
 
 ## Quick start
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 python3 grok-bot-export.py
 python3 grok-bot-export.py --messages-only
@@ -44,29 +38,11 @@ python3 grok-bot-export.py --mode chat
 python3 grok-bot-export.py --mode all
 ```
 
-## OpenCode MCP
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "servers": {
-      "grok-bot": {
-        "type": "local",
-        "command": ["python3", "/absolute/path/grok-bot-mcp.py", "/absolute/path/grok-bot-export-YYYYMMDD"]
-      }
-    }
-  }
-}
-```
-
-## Disclaimer
-
-Unofficial tool, not affiliated with or endorsed by xAI. It reads history for an account you own. grok.com interfaces can change without notice. Do not put cookies, Keychain material, or exported transcripts in issues or commits.
-
 ## Contact
 
 - GitHub: https://github.com/LofiSu
+- Blog: https://www.lofisu.chat/ and https://lofisu.vercel.app/
 - Email: lofisuchat@gmail.com
 - X: https://x.com/QiuMilorw (Rowan)
-- Sponsors: https://github.com/sponsors/LofiSu (email donations are welcome if Sponsors is not enabled)
+- Sponsors: https://github.com/sponsors/LofiSu
+- Buy Me a Coffee: https://www.buymeacoffee.com/LofiSu

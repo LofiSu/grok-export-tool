@@ -4,15 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>grok-export-tool</title>
-  <meta name="description" content="Unofficial local backup for your own Grok Bots and regular Grok chats. macOS, Chrome, and a small MCP server.">
+  <meta name="description" content="Export your own Grok Bots and regular Grok chats. Fully local, no API key. CLI, MCP server, and agent skills.">
   <link rel="canonical" href="https://lofisu.github.io/grok-export-tool/">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
   <div class="frame">
     <header class="site-header">
-      <a class="wordmark" href="index.html">grok-export-tool</a>
+      <a class="wordmark" href="index.html"><img src="assets/logo.png" alt="" width="28" height="28"> grok-export-tool</a>
       <nav>
         <a href="guide.html">Guide</a>
         <a href="index.zh-CN.html" lang="zh-Hans">中文</a>
@@ -22,19 +24,16 @@
 
     <main id="content">
       <header class="hero">
-        <p class="kicker">Unofficial · Local · Your account</p>
+        <p class="kicker">Local · Your account · No API key</p>
         <h1>grok-export-tool</h1>
-        <p class="deck">A local copy of your Grok Bots and your regular Grok chats, plus a small MCP server for the Bot archive.</p>
-        <p class="scope">It runs on your Mac, in the Chrome profile where you are already logged in to grok.com. It reads history you already have. It does not send new chats. Unofficial tool, not affiliated with or endorsed by xAI.</p>
+        <p class="deck">Export Grok Bots and chats. MCP server and agent skills. Fully local, no API key.</p>
+        <p class="scope">A local exporter for the Chrome session already logged in to grok.com: Grok Bots with attachments, and regular Grok chats. It reads history you already have. It does not send new chats.</p>
         <div class="actions">
           <a class="primary" href="guide.html">Read the guide</a>
           <a href="https://github.com/LofiSu/grok-export-tool">View the source</a>
         </div>
-        <figure class="poster-slot">
-          <p>
-            <span class="label">Logo and poster</span>
-            Forthcoming. The Grok Bot avatar will be saved unchanged at <code>docs/assets/grok-bot-logo.png</code> and shown with the unofficial disclaimer beside it. The poster will be <code>docs/assets/poster.png</code>.
-          </p>
+        <figure class="poster">
+          <img src="assets/poster.png" alt="grok-export-tool. Export Grok Bots and chats. MCP server and agent skills. Fully local, no API key.">
         </figure>
       </header>
 
@@ -44,11 +43,11 @@
           <ul>
             <li>Every Grok Bot the signed-in Chrome session can see: roster, full transcript, and attachments, in parallel 4&nbsp;MB chunks.</li>
             <li>Regular Grok chats in a second folder: Markdown, raw JSON, and one combined JSONL file.</li>
-            <li>A messages-only Bot export when you want the text without attachment downloads.</li>
+            <li>A local CLI for Bots, regular chats, or both, with a messages-only option for Bots.</li>
             <li>A stdio MCP server with no third-party dependencies: <code>list_bots</code>, <code>get_bot</code>, <code>search</code>. It reads the Bot archive.</li>
-            <li>An OpenCode skill in the repository for the export-and-query workflow.</li>
+            <li>An Agent Skill at <code>.claude/skills/grok-export/</code> for Claude Code, OpenCode, and other agents.</li>
           </ul>
-          <p>macOS and Google Chrome only. Profiles scanned: Default, Profile 1, and Profile 2. Chat export records text and raw JSON; it does not download attachment files.</p>
+          <p>macOS reads Chrome through the Keychain. Windows can use DPAPI. Linux is best-effort, and every platform can pass <code>--cookie</code>. Chat export records text and raw JSON; it does not download attachment files.</p>
         </div>
       </section>
 
@@ -65,7 +64,7 @@ python3 grok-bot-export.py                  # Bots, with attachments
 python3 grok-bot-export.py --messages-only  # Bots, text only
 python3 grok-bot-export.py --mode chat      # regular chats
 python3 grok-bot-export.py --mode all       # both</code></pre>
-          <p>The first run asks macOS for the Keychain item Chrome Safe Storage. Allow it. Output goes to <code>~/Downloads/</code> unless you pass a directory. Progress lines are in Chinese. The <a href="guide.html">guide</a> covers each mode, the archive, OpenCode, and the failures that actually happen.</p>
+          <p>On macOS the first run asks for the Keychain item Chrome Safe Storage. Allow it. Windows and Linux can use <code>--cookie</code> when automatic decryption fails. Output goes to <code>~/Downloads/</code> unless you pass a directory. Progress lines are in Chinese. The <a href="guide.html">guide</a> covers each mode, the archive, MCP, skills, and the failures that actually happen.</p>
         </div>
       </section>
 
@@ -97,7 +96,7 @@ python3 grok-bot-export.py --mode all       # both</code></pre>
       <section id="disclaimer">
         <h2>Disclaimer</h2>
         <div class="measure">
-          <p>Unofficial tool. It is not affiliated with or endorsed by xAI. It depends on grok.com interfaces that can change without notice. Use it to back up an account you own, and follow grok.com’s terms. Treat the export folder as private.</p>
+          <p>Maintained in the open. It is not published by xAI. grok.com’s interfaces can change without notice. Back up an account you own, and follow grok.com’s terms. Treat the export folder as private.</p>
         </div>
       </section>
     </main>
@@ -106,16 +105,24 @@ python3 grok-bot-export.py --mode all       # both</code></pre>
       <div class="cols">
         <div>
           <h2>Contact</h2>
-          <p>Questions, corrections, and collaboration are welcome.</p>
+          <p>欢迎 Connect. Questions, collaboration, and a coffee chat are welcome.</p>
           <ul>
             <li><a href="https://github.com/LofiSu">GitHub · LofiSu</a></li>
+            <li><a href="https://www.lofisu.chat/">Blog · lofisu.chat</a></li>
+            <li><a href="https://lofisu.vercel.app/">lofisu.vercel.app</a></li>
             <li><a href="mailto:lofisuchat@gmail.com">lofisuchat@gmail.com</a></li>
             <li><a href="https://x.com/QiuMilorw">X · Rowan</a></li>
           </ul>
         </div>
         <div>
           <h2>Donate</h2>
-          <p><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a>. If Sponsors is not enabled yet, email is welcome too.</p>
+          <p>欢迎捐赠 · 欢迎赞助 · Buy Me a Coffee.</p>
+          <ul>
+            <li><a href="https://github.com/sponsors/LofiSu">GitHub Sponsors</a></li>
+            <li><a href="https://www.buymeacoffee.com/LofiSu">Buy Me a Coffee</a></li>
+            <li><a href="mailto:lofisuchat@gmail.com">Sponsor by email</a></li>
+          </ul>
+          <p>If the coffee page 404s, use Sponsors or email.</p>
         </div>
         <div>
           <h2>Project</h2>
@@ -126,7 +133,7 @@ python3 grok-bot-export.py --mode all       # both</code></pre>
           </ul>
         </div>
       </div>
-      <p class="fine">grok-export-tool. Local backup of your own account. Unofficial, not affiliated with xAI. Logo and poster forthcoming.</p>
+      <p class="fine">grok-export-tool. Export Grok Bots and chats. Fully local, no API key.</p>
     </footer>
   </div>
 </body>

@@ -62,12 +62,21 @@ a:hover { color: var(--ink); }
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-family: var(--sans);
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   text-decoration: none;
+}
+
+.wordmark img {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: block;
 }
 
 .site-header nav {
@@ -133,23 +142,15 @@ h1 {
 
 .actions a.primary:visited { color: var(--paper); }
 
-.poster-slot {
-  aspect-ratio: 16 / 9;
+.poster {
   margin: 2.25rem 0 0;
-  border: 1px solid var(--ink);
-  display: flex;
-  align-items: flex-end;
-  padding: 1.1rem 1.25rem;
 }
 
-.poster-slot p { margin: 0; max-width: 28rem; }
-
-.poster-slot .label {
+.poster img {
   display: block;
-  margin-bottom: 0.35rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--ink);
 }
 
 main { padding-bottom: 1rem; }

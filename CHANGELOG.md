@@ -38,4 +38,11 @@ This project does not assign version numbers yet. Entries are grouped by calenda
 - Export directories are mode `0700` and files mode `0600`. Attachment bytes are kept only when the download finishes, and a single bad bot or a repeated cursor no longer aborts the whole run.
 - The MCP server ignores symlinks that leave the export directory, clamps tool arguments, and answers unknown JSON-RPC methods. A home-directory path and real bot-name examples were removed from the server and the OpenCode skill.
 - Added offline unit tests under `tests/`.
-- The Chrome cookie-database copy is deleted before decryption. Logs also redact JWT-shaped values. README and the Pages home reserve `docs/assets/grok-bot-logo.png` and `docs/assets/poster.png`; neither file is in the tree until the approved images arrive, and the avatar will be shown unchanged beside an unofficial disclaimer.
+- The Chrome cookie-database copy is deleted before decryption. Logs also redact JWT-shaped values.
+
+### Release assets and copy
+
+- Added the approved logo at `docs/assets/logo.png` and `docs/assets/grok-bot-logo.png`, and the poster at `docs/assets/poster.png`. The poster leads both READMEs and the Pages home. The logo is the site icon.
+- Docs now describe both Grok Bots and regular chats, the CLI, the MCP server, and the Agent Skill at `.claude/skills/grok-export/`.
+- Contact includes the blog, email, X, GitHub Sponsors, and Buy Me a Coffee.
+- Merged Windows, Linux, and `--cookie` support from `main`. Cookie values are still not printed, and the database copy is still removed before decryption.

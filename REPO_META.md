@@ -4,15 +4,15 @@ Suggestions for the GitHub About box. Nothing in this file is applied automatica
 
 ## Description
 
-Use this text (226 characters; GitHub allows 350):
+Use this text (162 characters; GitHub allows 350):
 
-> Unofficial local backup of your own Grok Bots and regular Grok chats. Uses the Chrome session already logged in on your Mac, writes a JSONL and Markdown archive, and serves the Bot archive through a zero-dependency MCP server.
+> Local exporter for your own Grok Bots and regular Grok chats. No API key. Writes a JSONL and Markdown archive, with a zero-dependency MCP server and agent skills.
 
-Shorter alternative (81 characters):
+Shorter alternative (76 characters):
 
-> Local backup for your own Grok Bots and chats, plus a zero-dependency MCP server.
+> Export Grok Bots and chats locally. MCP server and agent skills. No API key.
 
-Keep the unofficial status visible in the README. The About text should stay a description of a personal backup tool.
+The About text should stay a description of a personal backup tool: Bots and chats, local, no API key, MCP, and skills.
 
 ## Topics
 
@@ -52,8 +52,8 @@ Until then the URL 404s. The README is the page that works as soon as the reposi
 - Paste the website URL above.
 - Apply the topics above. Adding `github-pages` is part of this packaging pass; the rest carry forward.
 - Set Pages → Source to **GitHub Actions** once, so the workflow may deploy.
-- GitHub Sponsors for `LofiSu` may still be off. The README and the site footer also accept donations by email at lofisuchat@gmail.com.
-- The poster is not in the tree yet. READMEs and the site use a text placeholder until an approved image is added at `docs/assets/poster.png`.
+- GitHub Sponsors for `LofiSu` may still be off. The README and the site footer also link Buy Me a Coffee (`https://www.buymeacoffee.com/LofiSu`) and accept sponsorship by email at lofisuchat@gmail.com. If the coffee page 404s, Sponsors or email is the fallback.
+- The approved logo is `docs/assets/logo.png` (same bytes as `docs/assets/grok-bot-logo.png`). The poster is `docs/assets/poster.png`.
 
 ## Before making the repository public
 

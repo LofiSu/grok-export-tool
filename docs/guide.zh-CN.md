@@ -4,15 +4,15 @@
 
 在 Mac 上，按步骤备份你自己的 [grok.com](https://grok.com) 账号。一条命令里有两块数据：**Grok Bot**（名单、完整记录、附件）和**普通 Grok 对话**。可以只导 Bot、只导普通对话，或两者一起导。
 
-这是非官方工具，是本地备份，不是 xAI 的产品。导出脚本的进度日志本来就是中文。
+它导出 Grok Bot 和普通 Grok 对话。导出脚本的进度日志本来就是中文。macOS 从钥匙串读取 Chrome cookie。Windows 和 Linux 在自动解密失败时使用 `--cookie "sso=...; sso-rw=..."`。不要把这些值贴进 issue 或聊天。
 
 ## 1. 开始之前
 
 下面几项都要满足：
 
-1. 一台 Mac。
-2. Google Chrome 已在 [grok.com](https://grok.com) 登录你要备份的账号。Safari、Firefox、Arc、Chromium 都不会被读取。
-3. 这个登录位于 Chrome 配置档 **Default**、**Profile 1** 或 **Profile 2**。其他配置档会被忽略。
+1. macOS、Windows 或 Linux。macOS 从钥匙串读取 Chrome Safe Storage（配置档 Default、Profile 1、Profile 2）。Windows 在安装 `pywin32` 后可以用 DPAPI。Linux 是尽力而为。任何平台都可以传 `--cookie`。
+2. 若走自动解密，Google Chrome 需已在 [grok.com](https://grok.com) 登录你要备份的账号。Safari、Firefox、Arc、Chromium 都不会被读取。
+3. 在 macOS 上，这个登录位于 Default、Profile 1 或 Profile 2。其他配置档会被忽略。
 4. Python 3.9 或更高版本（`python3 --version`）。
 5. 账号是你自己的。
 
@@ -264,7 +264,7 @@ MCP 文件不导入 `websocket` 或 `cryptography`，系统自带的 `python3` �
 
 ### OpenCode skill
 
-克隆本仓库并把它当作项目打开。OpenCode 会加载 `.opencode/skills/grok-export/SKILL.md`。Skill 名称是 **Grok Export**。用平常的话说要导出，或要在 Bot 归档里查一件事。Skill 会告诉 Agent 该跑哪条命令，并且优先用 MCP，而不是把整份文件贴进提示词。
+Skill 文件是 `.claude/skills/grok-export/SKILL.md`。Claude Code 会读取项目里的 `.claude/skills/`。OpenCode 也会读这个目录，或在配置里写 `"skills": [".claude/skills"]`。Codex、Copilot、Gemini CLI、Cursor 可以按各自文档把 `grok-export/` 拷到 skills 目录。Skill 名称是 **grok-export**。用平常的话说要导出，或要在 Bot 归档里查一件事。
 
 ### 其他 Agent
 

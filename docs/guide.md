@@ -2,17 +2,17 @@
 
 [English](guide.md) · [中文](guide.zh-CN.md) · [README](../README.md)
 
-A step-by-step backup of your own [grok.com](https://grok.com) account on a Mac. The tool has two products in one command: **Grok Bots** (roster, transcripts, attachments) and **regular Grok chats**. You choose bots, chats, or both.
+A step-by-step backup of your own [grok.com](https://grok.com) account. One command exports **Grok Bots** (roster, transcripts, attachments) and **regular Grok chats**. You choose bots, chats, or both.
 
-This is an unofficial tool. It is a local backup, not an xAI product. The exporter’s progress lines are in Chinese even on an English Mac.
+It exports Grok Bots and regular Grok chats. The exporter’s progress lines are in Chinese even on an English Mac. On macOS, Chrome cookies come from the Keychain. On Windows and Linux, use `--cookie "sso=...; sso-rw=..."` when automatic decryption fails. Do not paste those values into an issue or a chat.
 
 ## 1. Before you start
 
 You need all of the following:
 
-1. A Mac.
-2. Google Chrome, logged in at [grok.com](https://grok.com) as the account you want to back up. Safari, Firefox, Arc, and Chromium are not read.
-3. That login lives in the Chrome profile **Default**, **Profile 1**, or **Profile 2**. Other profiles are ignored.
+1. macOS, Windows, or Linux. macOS reads Chrome Safe Storage from the Keychain (profiles **Default**, **Profile 1**, and **Profile 2**). Windows can use DPAPI with `pywin32`. Linux is best-effort. Any platform can pass `--cookie`.
+2. Google Chrome, logged in at [grok.com](https://grok.com) as the account you want to back up, when you use automatic decryption. Safari, Firefox, Arc, and Chromium are not read.
+3. On macOS, that login lives in Default, Profile 1, or Profile 2. Other profiles are ignored.
 4. Python 3.9 or newer (`python3 --version`).
 5. The account is yours.
 
@@ -264,7 +264,7 @@ Some older builds want the server directly under `mcp`. The current schema marks
 
 ### OpenCode skill
 
-Clone this repository and open it as the project. OpenCode loads `.opencode/skills/grok-export/SKILL.md`. The skill name is **Grok Export**. Ask, in ordinary language, to export or to look something up in the Bot archive. The skill tells the agent which command to run and to prefer MCP over pasting whole files into the prompt.
+The skill file is `.claude/skills/grok-export/SKILL.md`. Claude Code reads `.claude/skills/` in the project. OpenCode reads that folder as well, or you can set `"skills": [".claude/skills"]`. Codex, Copilot, Gemini CLI, and Cursor can use a copy of `grok-export/` in the skills directory they document. The skill name is **grok-export**. Ask, in ordinary language, to export or to look something up in the Bot archive.
 
 ### Other agents
 
