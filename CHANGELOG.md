@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 This project does not assign version numbers yet. Entries are grouped by calendar day on `main`.
 
+## 2026-10-31
+
+### Docs
+
+- Removed `llms.txt`. The READMEs, the Pages site, and the guides did not link to it.
+
 ## 2026-10-29
 
 ### Initial
