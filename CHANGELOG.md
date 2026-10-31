@@ -9,6 +9,7 @@ This project does not assign version numbers yet. Entries are grouped by calenda
 ### Docs
 
 - Removed `llms.txt`. The READMEs, the Pages site, and the guides did not link to it.
+- Rewrote `README.zh-CN.md` in tighter Chinese and aligned `README.md` to the same structure and facts. No FAQ section.
 
 ## 2026-10-29
 
